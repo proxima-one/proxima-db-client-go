@@ -1,4 +1,4 @@
-package proxima_client
+package client
 
 import (
   context "context"
@@ -6,8 +6,6 @@ import (
   grpc "google.golang.org/grpc"
   "math/rand"
 )
-
-
 
 func randomString(size int) (string) {
   bytes := make([]byte, size)
@@ -39,8 +37,7 @@ func TestTable(t *testing.T) {
   proximaClient := Setup()
   openResponse, openErr := proximaClient.Open(context.Background(), &OpenRequest{Name: name})
   if openErr != nil || !openResponse.GetConfirmation() {
-    //t.Error("Cannot open table: ", openErr)
-    closeResponse, closeErr := proximaClient.Close(context.Background(), &CloseRequest{Name: name})
+    closeResponse, closeErr := proximaClient.Close(context.TODO(), &CloseRequest{Name: name})
     if closeErr != nil || !closeResponse.GetConfirmation() {
       t.Error("Cannot close table: ", closeErr)
     }
@@ -58,7 +55,7 @@ func TestBasicCRUD(t *testing.T) {
   //_, openErr := proximaClient.Open(context.Background(), &OpenRequest{Name: name})
 
   for key, value := range keyValues {
-    _, putErr :=  proximaClient.Put(context.Background(), &PutRequest{Name:  name, Key: []byte(key),
+    _, putErr :=  proximaClient.Put(context.TODO(), &PutRequest{Name:  name, Key: []byte(key),
       Value: []byte(value), Prove: prove})
     if putErr != nil {
       t.Error("Issue with putting value into table", putErr)
@@ -66,13 +63,16 @@ func TestBasicCRUD(t *testing.T) {
   }
 
   for key, _ := range keyValues {
-    _, getErr :=  proximaClient.Get(context.Background(), &GetRequest{Name: name, Key: []byte(key), Prove: prove})
+    _, getErr :=  proximaClient.Get(context.TODO(), &GetRequest{Name: name, Key: []byte(key), Prove: prove})
     if getErr != nil {
       t.Error("Issue with putting value into table", getErr)
     }
   }
 }
-//
+
+
+
+
 // func TestAdvancedQuery(t *testing.T) {
 //   panic("Not implemented")
 // }

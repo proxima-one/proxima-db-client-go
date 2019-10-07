@@ -1,4 +1,4 @@
-package proxima_client
+package client
 
 import (
 	context "context"
