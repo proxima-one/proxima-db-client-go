@@ -14,9 +14,25 @@ type ProximaDBResult struct {
   proof *ProximaDBProof
 }
 
+func (db *ProximaDBResult) GetValue() ([]byte) {
+  return db.value
+}
+
+func (db *ProximaDBResult) GetProof() (*ProximaDBProof) {
+  return db.proof
+}
+
 type ProximaDBProof struct {
   root []byte
   proof []byte
+}
+
+func (pf *ProximaDBProof) GetRoot() ([]byte) {
+  return pf.root
+}
+
+func (pf *ProximaDBProof) GetProof() ([]byte) {
+  return pf.proof
 }
 
 func NewProximaDBResult(value, proof, root []byte) (*ProximaDBResult) {
