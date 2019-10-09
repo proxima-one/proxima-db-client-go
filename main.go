@@ -3,7 +3,7 @@ package proxima_db_client_go
 
 import (
   "context"
-  "fmt"
+  _ "fmt"
   proxima_client "github.com/proxima-one/proxima-db-client-go/client"
   grpc "google.golang.org/grpc"
 )
@@ -120,7 +120,7 @@ func (db *ProximaDB) Query(table string, data string, args map[string]interface{
 
 func (db *ProximaDB) Get(table string, k interface{}, args map[string]interface{}) (*ProximaDBResult, error){
   prove := (args["prove"] != nil) && args["prove"].(bool)
-  key := []byte(fmt.Sprintf("%v", k.(interface{})))
+  key := ProcessKey(k)
   resp, err := db.client.Get(context.TODO(), &proxima_client.GetRequest{Name: table, Key: key, Prove: prove})
   if err != nil {
     return nil, err
@@ -128,11 +128,11 @@ func (db *ProximaDB) Get(table string, k interface{}, args map[string]interface{
   return NewProximaDBResult(resp.GetValue(), resp.GetProof(), resp.GetRoot()), nil
 }
 
-func (db *ProximaDB) Set(table string, k interface{}, value interface{}, args map[string]interface{}) (*ProximaDBResult, error) {
+func (db *ProximaDB) Set(table string, k interface{}, v interface{}, args map[string]interface{}) (*ProximaDBResult, error) {
   prove := (args["prove"] != nil) && args["prove"].(bool)
-  key := []byte(fmt.Sprintf("%v", k.(interface{})))
-  val := []byte(fmt.Sprintf("%v", value.(interface{}))) //have to convert the value to bytes
-  resp, err := db.client.Put(context.TODO(), &proxima_client.PutRequest{Name: table, Key: key, Value: val, Prove: prove})
+  key := ProcessKey(k)
+  value := ProcessValue(v)
+  resp, err := db.client.Put(context.TODO(), &proxima_client.PutRequest{Name: table, Key: key, Value: value, Prove: prove})
   if err != nil {
     return nil, err
   }
@@ -141,7 +141,7 @@ func (db *ProximaDB) Set(table string, k interface{}, value interface{}, args ma
 
 func (db *ProximaDB) Remove(table string, k interface{}, args map[string]interface{}) (*ProximaDBResult, error) {
   prove := (args["prove"] != nil) && args["prove"].(bool)
-  key := []byte(fmt.Sprintf("%v", k.(interface{})))
+  key := ProcessKey(k)
   resp, err := db.client.Remove(context.TODO(), &proxima_client.RemoveRequest{Name: table, Key: key, Prove: prove})
   if err != nil {
     return nil, err

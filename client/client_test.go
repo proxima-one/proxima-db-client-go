@@ -24,6 +24,8 @@ func generateKeyValuePairs(num int, keySize int, valSize int) (map[string]string
 }
 
 
+
+
 func Setup() (ProximaServiceClient) {
   conn, err := grpc.Dial("0.0.0.0:50051", grpc.WithInsecure())
   if err != nil {
