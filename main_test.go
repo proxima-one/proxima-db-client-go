@@ -29,7 +29,7 @@ func TestGetPut(t *testing.T) {
   proximaClient.Open(name)
   keyValues := generateKeyValuePairs(100, 32, 300)
   args := make(map[string]interface{})
-  args["prove"] = false
+  //args["prove"] = false
 
   for key, value := range keyValues {
     _, putErr := proximaClient.Set(name, key, value, args)

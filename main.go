@@ -106,7 +106,7 @@ func (db *ProximaDB) CloseAll(tableList []string) (bool, error) {
   }
 
 func (db *ProximaDB) Query(table string, data string, args map[string]interface{}) (*[]ProximaDBResult, error) {
-  prove := args["prove"].(bool)
+  prove := (args["prove"] != nil) && args["prove"].(bool)
   responses , err := db.client.Query(context.TODO(), &proxima_client.QueryRequest{Name: table, Query: data, Prove: prove})
   if err != nil {
     return nil, err
@@ -119,7 +119,7 @@ func (db *ProximaDB) Query(table string, data string, args map[string]interface{
 }
 
 func (db *ProximaDB) Get(table string, k interface{}, args map[string]interface{}) (*ProximaDBResult, error){
-  prove := args["prove"].(bool)
+  prove := (args["prove"] != nil) && args["prove"].(bool)
   key := []byte(fmt.Sprintf("%v", k.(interface{})))
   resp, err := db.client.Get(context.TODO(), &proxima_client.GetRequest{Name: table, Key: key, Prove: prove})
   if err != nil {
@@ -129,7 +129,7 @@ func (db *ProximaDB) Get(table string, k interface{}, args map[string]interface{
 }
 
 func (db *ProximaDB) Set(table string, k interface{}, value interface{}, args map[string]interface{}) (*ProximaDBResult, error) {
-  prove := args["prove"].(bool)
+  prove := (args["prove"] != nil) && args["prove"].(bool)
   key := []byte(fmt.Sprintf("%v", k.(interface{})))
   val := []byte(fmt.Sprintf("%v", value.(interface{}))) //have to convert the value to bytes
   resp, err := db.client.Put(context.TODO(), &proxima_client.PutRequest{Name: table, Key: key, Value: val, Prove: prove})
@@ -140,7 +140,7 @@ func (db *ProximaDB) Set(table string, k interface{}, value interface{}, args ma
 }
 
 func (db *ProximaDB) Remove(table string, k interface{}, args map[string]interface{}) (*ProximaDBResult, error) {
-  prove := args["prove"].(bool)
+  prove := (args["prove"] != nil) && args["prove"].(bool)
   key := []byte(fmt.Sprintf("%v", k.(interface{})))
   resp, err := db.client.Remove(context.TODO(), &proxima_client.RemoveRequest{Name: table, Key: key, Prove: prove})
   if err != nil {
