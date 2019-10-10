@@ -1,6 +1,9 @@
 package proxima_db_client_go
 
-import "fmt"
+import (
+  "fmt"
+  "encoding/json"
+  )
 
 func padOrTrimBytes(bb []byte, size int) ([]byte) {
     l := len(bb)
@@ -22,6 +25,6 @@ func ProcessKey(key interface{}) ([]byte) {
 
 
 func ProcessValue(value interface{}) ([]byte) {
-  byteValue := []byte(fmt.Sprintf("%v", value.(interface{})))
+  byteValue, _ := json.Marshal(value)
   return byteValue
 }
