@@ -26,5 +26,5 @@ func ProcessKey(key interface{}) ([]byte) {
 
 func ProcessValue(value interface{}) ([]byte) {
   byteValue, _ := json.Marshal(value)
-  return byteValue
+  return []byte(byteValue)
 }

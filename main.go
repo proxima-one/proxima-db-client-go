@@ -1,13 +1,13 @@
+
 package proxima_db_client_go
 
 
 import (
   "context"
-  _ "fmt"
   proxima_client "github.com/proxima-one/proxima-db-client-go/client"
   grpc "google.golang.org/grpc"
+  _ "fmt"
 )
-
 
 type ProximaDBResult struct {
   value []byte
@@ -105,6 +105,14 @@ func (db *ProximaDB) CloseAll(tableList []string) (bool, error) {
     return true, nil
   }
 
+  func (db *ProximaDB) TableRemove(tableName string) (bool, error) {
+    _, err:= db.client.TableRemove(context.TODO(), &proxima_client.TableRemoveRequest{Name: tableName})
+    if err != nil {
+      return false, err
+    }
+    return true, nil
+  }
+
 func (db *ProximaDB) Query(table string, data string, args map[string]interface{}) (*[]ProximaDBResult, error) {
   prove := (args["prove"] != nil) && args["prove"].(bool)
   responses , err := db.client.Query(context.TODO(), &proxima_client.QueryRequest{Name: table, Query: data, Prove: prove})
@@ -127,6 +135,14 @@ func (db *ProximaDB) Get(table string, k interface{}, args map[string]interface{
   }
   return NewProximaDBResult(resp.GetValue(), resp.GetProof(), resp.GetRoot()), nil
 }
+
+// func (db *ProximaDB) Batch() (*ProximaDBResult, error) {
+//
+//   panic(//not implemented)
+// }
+
+
+//func BatchRead
 
 func (db *ProximaDB) Set(table string, k interface{}, v interface{}, args map[string]interface{}) (*ProximaDBResult, error) {
   prove := (args["prove"] != nil) && args["prove"].(bool)
