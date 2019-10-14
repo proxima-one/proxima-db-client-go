@@ -113,17 +113,17 @@ func (db *ProximaDB) CloseAll(tableList []string) (bool, error) {
     return true, nil
   }
 
-func (db *ProximaDB) Query(table string, data string, args map[string]interface{}) (*[]ProximaDBResult, error) {
+func (db *ProximaDB) Query(table string, data string, args map[string]interface{}) ([]*ProximaDBResult, error) {
   prove := (args["prove"] != nil) && args["prove"].(bool)
   responses , err := db.client.Query(context.TODO(), &proxima_client.QueryRequest{Name: table, Query: data, Prove: prove})
   if err != nil {
     return nil, err
   }
-  proximaResults := make([]ProximaDBResult, 0)
+  proximaResults := make([]*ProximaDBResult, 0)
   for _, response :=  range responses.GetResponses() {
-    proximaResults = append(proximaResults, *NewProximaDBResult(response.GetValue(), response.GetProof(), response.GetRoot()))
+    proximaResults = append(proximaResults, NewProximaDBResult(response.GetValue(), response.GetProof(), response.GetRoot()))
   }
-  return &proximaResults, nil
+  return proximaResults, nil
 }
 
 func (db *ProximaDB) Get(table string, k interface{}, args map[string]interface{}) (*ProximaDBResult, error){
@@ -136,13 +136,25 @@ func (db *ProximaDB) Get(table string, k interface{}, args map[string]interface{
   return NewProximaDBResult(resp.GetValue(), resp.GetProof(), resp.GetRoot()), nil
 }
 
-// func (db *ProximaDB) Batch() (*ProximaDBResult, error) {
-//
-//   panic(//not implemented)
-// }
+ func (db *ProximaDB) Batch(entries []interface{}, args map[string]interface{}) ([]*ProximaDBResult, error) {
+   prove := (args["prove"] != nil) && args["prove"].(bool)
+   requests := make([]*proxima_client.PutRequest, 0)
+   for _, e:= range entries {
+    entry:= map[string]interface{}(e.(map[string]interface{}))
+    requests = append(requests, &proxima_client.PutRequest{Name: string(entry["table"].(string)), Key: []byte(entry["key"].([]byte)), Value: []byte(entry["value"].([]byte)), Prove: bool(entry["prove"].(bool))})
+   }
 
+   responses , err := db.client.Batch(context.TODO(), &proxima_client.BatchRequest{Requests: requests, Prove: prove})
 
-//func BatchRead
+   if err != nil {
+     return nil, err
+   }
+   proximaResults := make([]*ProximaDBResult, 0)
+   for _, response :=  range responses.GetResponses() {
+     proximaResults = append(proximaResults, NewProximaDBResult([]byte{}, response.GetProof(), response.GetRoot()))
+   }
+   return proximaResults, nil
+ }
 
 func (db *ProximaDB) Set(table string, k interface{}, v interface{}, args map[string]interface{}) (*ProximaDBResult, error) {
   prove := (args["prove"] != nil) && args["prove"].(bool)

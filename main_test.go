@@ -58,7 +58,7 @@ var tableName string = "NewTable";
 var name string = "NewTable";
 var proximaClient *ProximaDB = NewDatabase(name);
 var args map[string]interface{} = map[string]interface{}{"prove":false};
-var keyValues map[string]string = generateKeyValuePairs(100000, 32, 300)
+var keyValues map[string]string = generateKeyValuePairs(100, 32, 300)
 
 
 
