@@ -2,7 +2,8 @@ package proxima_db_client_go
 
 import (
   "fmt"
-  "encoding/json"
+  //"encoding/json"
+  json "github.com/json-iterator/go"
   )
 
 func padOrTrimBytes(bb []byte, size int) ([]byte) {
