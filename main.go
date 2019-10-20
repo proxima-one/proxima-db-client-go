@@ -6,7 +6,7 @@ import (
   "context"
   proxima_client "github.com/proxima-one/proxima-db-client-go/client"
   grpc "google.golang.org/grpc"
-  _ "fmt"
+  //"fmt"
 )
 
 type ProximaDBResult struct {
@@ -36,9 +36,11 @@ func (pf *ProximaDBProof) GetProof() ([]byte) {
 }
 
 func NewProximaDBResult(value, proof, root []byte) (*ProximaDBResult) {
+
   return &ProximaDBResult{value: value, proof: &ProximaDBProof{root: root, proof: proof}}
 }
 
+//this is where the cache will reside ...
 type ProximaDB struct {
   client proxima_client.ProximaServiceClient
   tables []string
@@ -46,7 +48,11 @@ type ProximaDB struct {
 
 func NewProximaDB(dbIP, dbPort string) (*ProximaDB) {
   address := dbIP + ":" + dbPort
-  conn, _ := grpc.Dial(address, grpc.WithInsecure())
+  maxMsgSize := 1024*1024*1024
+  conn, _ := grpc.Dial(address, grpc.WithInsecure(), grpc.WithDefaultCallOptions(
+			grpc.MaxCallRecvMsgSize(maxMsgSize),
+			grpc.MaxCallSendMsgSize(maxMsgSize)))
+
   return &ProximaDB{client: proxima_client.NewProximaServiceClient(conn), tables: []string{}}
 }
 
@@ -63,7 +69,7 @@ func (db *ProximaDB) Open(tableName string) (bool, error) {
   resp, err:= db.client.Open(context.TODO(), &proxima_client.OpenRequest{Name: tableName})
   if err != nil {
     return false, nil
-  }
+  } //if tables does not contain client
   return resp.GetConfirmation(), nil
 }
 
@@ -128,7 +134,7 @@ func (db *ProximaDB) Query(table string, data string, args map[string]interface{
 
 func (db *ProximaDB) Get(table string, k interface{}, args map[string]interface{}) (*ProximaDBResult, error){
   prove := (args["prove"] != nil) && args["prove"].(bool)
-  key := ProcessKey(k)
+  key := ProcessKey(k) //check cache first
   resp, err := db.client.Get(context.TODO(), &proxima_client.GetRequest{Name: table, Key: key, Prove: prove})
   if err != nil {
     return nil, err
@@ -140,10 +146,13 @@ func (db *ProximaDB) Get(table string, k interface{}, args map[string]interface{
    prove := (args["prove"] != nil) && args["prove"].(bool)
    requests := make([]*proxima_client.PutRequest, 0)
    for _, e:= range entries {
-    entry:= map[string]interface{}(e.(map[string]interface{}))
-    requests = append(requests, &proxima_client.PutRequest{Name: string(entry["table"].(string)), Key: []byte(entry["key"].([]byte)), Value: []byte(entry["value"].([]byte)), Prove: bool(entry["prove"].(bool))})
-   }
 
+    entry:= map[string]interface{}(e.(map[string]interface{})) //check cache first //process key, process value
+    key:= ProcessKey(entry["key"])
+    value:= ProcessValue(entry["value"])
+    requests = append(requests, &proxima_client.PutRequest{Name: string(entry["table"].(string)), Key: key, Value: value, Prove: false})
+   }
+   //Prove if cached ..., cache if err is not nil
    responses , err := db.client.Batch(context.TODO(), &proxima_client.BatchRequest{Requests: requests, Prove: prove})
 
    if err != nil {
@@ -159,11 +168,12 @@ func (db *ProximaDB) Get(table string, k interface{}, args map[string]interface{
 func (db *ProximaDB) Set(table string, k interface{}, v interface{}, args map[string]interface{}) (*ProximaDBResult, error) {
   prove := (args["prove"] != nil) && args["prove"].(bool)
   key := ProcessKey(k)
-  value := ProcessValue(v)
+  value := ProcessValue(v) //check cache first
   resp, err := db.client.Put(context.TODO(), &proxima_client.PutRequest{Name: table, Key: key, Value: value, Prove: prove})
   if err != nil {
     return nil, err
   }
+  //, new cache for each table ... cache, with get value ...
   return NewProximaDBResult([]byte{}, resp.GetProof(), resp.GetRoot()), nil
 }
 
@@ -174,5 +184,6 @@ func (db *ProximaDB) Remove(table string, k interface{}, args map[string]interfa
   if err != nil {
     return nil, err
   }
+  //if in cache remove
   return NewProximaDBResult([]byte{}, resp.GetProof(), resp.GetRoot()), nil
 }

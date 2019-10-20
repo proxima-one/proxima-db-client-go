@@ -3,7 +3,8 @@ package proxima_db_client_go
 import (
   "testing"
   "math/rand"
-  //"fmt"
+  "fmt"
+  "time"
 )
 
 func randomString(size int) (string) {
@@ -54,95 +55,67 @@ func generateKeyValuePairs(num int, keySize int, valSize int) (map[string]string
   return mapping
 }
 
+func generateEntries(name string, pairs map[string]string) ([]interface{}){
+  entries := make([]interface{}, 0)
+  for key, value := range pairs {
+    entry:= map[string]interface{}{"key": key, "value": value, "table": name, "prove": false}
+    entries = append(entries, entry)
+  }
+  return entries
+}
+
+func makeBatches(batchSize, total int) ([]int) {
+  batches := make([]int, 0)
+  num := 0
+  for total > (num + 1) {
+    num += batchSize
+    batches = append(batches, num)
+  }
+  return append(batches, total)
+}
+
 var tableName string = "NewTable";
 var name string = "NewTable";
 var proximaClient *ProximaDB = NewDatabase(name);
 var args map[string]interface{} = map[string]interface{}{"prove":false};
-var keyValues map[string]string = generateKeyValuePairs(100, 32, 300)
+var keyValues map[string]string = generateKeyValuePairs(100, 32, 200)
+var sizeValues int = 50;
+var numEntries int = 15000;
+var entries map[string]string = generateKeyValuePairs(numEntries, 32, sizeValues)
+var batchEntries []interface{} = generateEntries(tableName, entries)
 
-
-
-func TestPut(t *testing.T) {
-  for key, value := range keyValues {
-    _, putErr := proximaClient.Set(name, key, value, args)
-    if putErr != nil {
-      t.Error("Cannot put value: ", putErr)
-    }
-    //fmt.Println(string(result.GetProof().GetRoot()))
-  }
-}
-
-
-func TestGet(t *testing.T) {
-  // name := "NewTable"
-  // ip := "0.0.0.0"
-  // port := "50051"
-  // proximaClient := NewProximaDB(ip, port)
-  // proximaClient.Open(name)
-  // keyValues := generateKeyValuePairs(1, 32, 300)
-  // args := make(map[string]interface{})
-  // args["prove"] = true
-
-  for key, _ := range keyValues {
-    _, getErr := proximaClient.Get(name, key, args)
-    if getErr != nil {
-      t.Error("Cannot get value: ", getErr)
-    }
-    //fmt.Println(string(result.GetProof().GetRoot()))
-  }
-
-  //proximaClient.Close(name)
-}
-
-// func TestArbitraryKeyLength(t *testing.T) {
-//   name := "NewTable"
-//   ip := "0.0.0.0"
-//   port := "50051"
-//   proximaClient := NewProximaDB(ip, port)
-//   proximaClient.Open(name)
-//   keyValues := generateKeyValuePairs(1, 20, 300)
-//   args := make(map[string]interface{})
-//   //args["prove"] = false
 //
+// func TestPut(t *testing.T) {
 //   for key, value := range keyValues {
 //     _, putErr := proximaClient.Set(name, key, value, args)
 //     if putErr != nil {
 //       t.Error("Cannot put value: ", putErr)
 //     }
+//     //fmt.Println(string(result.GetProof().GetRoot()))
 //   }
-//
-//   for key, _ := range keyValues {
-//     _, getErr := proximaClient.Get(name, key, args)
-//     if getErr != nil {
-//       t.Error("Cannot get value: ", getErr)
-//     }
-//     //fmt.Println(string(result))
-//   }
-//   proximaClient.Close(name)
 // }
-
-// func TestQuery(t *testing.T) {
-//   name := "NewTable"
-//   ip := "0.0.0.0"
-//   port := "50051"
-//   proximaClient := NewProximaDB(ip, port)
-//   proximaClient.Open(name)
-//   keyValues := generateKeyValuePairs(100, 32, 300)
-//   args := make(map[string]interface{})
-//   args["prove"] = false
 //
-//   for key, value := range keyValues {
-//     _, putErr := proximaClient.Set(name, key, value, args)
-//     if putErr != nil {
-//       t.Error("Cannot put value: ", putErr)
-//     }
-//   }
 //
+// func TestGet(t *testing.T) {
 //   for key, _ := range keyValues {
 //     _, getErr := proximaClient.Get(name, key, args)
 //     if getErr != nil {
 //       t.Error("Cannot get value: ", getErr)
 //     }
 //   }
-//   proximaClient.Close(name)
 // }
+
+func TestBatch(t *testing.T) {
+  // sizeValues := 300
+  // numEntries := 3000
+  // entries := generateKeyValuePairs(numEntries, 32, sizeValues)
+  // batchEntries := generateEntries(tableName, entries)
+  start := time.Now()
+  _, err := proximaClient.Batch(batchEntries, args)
+  if err != nil {
+    t.Error("Cannot batch values: ", err)
+  }
+  end := time.Now()
+  elapsed := end.Sub(start)
+  fmt.Println(elapsed)
+}
