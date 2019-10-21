@@ -139,6 +139,9 @@ func (db *ProximaDB) Get(table string, k interface{}, args map[string]interface{
   if err != nil {
     return nil, err
   }
+  if resp.GetValue() == nil || len(resp.GetValue()) <= 0 {
+    return nil, nil
+  }
   return NewProximaDBResult(resp.GetValue(), resp.GetProof(), resp.GetRoot()), nil
 }
 
@@ -152,7 +155,6 @@ func (db *ProximaDB) Get(table string, k interface{}, args map[string]interface{
     value:= ProcessValue(entry["value"])
     requests = append(requests, &proxima_client.PutRequest{Name: string(entry["table"].(string)), Key: key, Value: value, Prove: false})
    }
-   //Prove if cached ..., cache if err is not nil
    responses , err := db.client.Batch(context.TODO(), &proxima_client.BatchRequest{Requests: requests, Prove: prove})
 
    if err != nil {
