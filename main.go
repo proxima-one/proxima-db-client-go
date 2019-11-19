@@ -139,7 +139,7 @@ func (db *ProximaDB) Get(table string, k interface{}, args map[string]interface{
   if err != nil {
     return nil, err
   }
-  if resp.GetValue() == nil || len(resp.GetValue()) <= 0 {
+  if resp == nil || resp.GetValue() == nil || len(resp.GetValue()) <= 0 {
     return nil, nil
   }
   return NewProximaDBResult(resp.GetValue(), resp.GetProof(), resp.GetRoot()), nil
@@ -149,14 +149,14 @@ func (db *ProximaDB) Get(table string, k interface{}, args map[string]interface{
    prove := (args["prove"] != nil) && args["prove"].(bool)
    requests := make([]*proxima_client.PutRequest, 0)
    for _, e:= range entries {
-
-    entry:= map[string]interface{}(e.(map[string]interface{})) //check cache first //process key, process value
-    key:= ProcessKey(entry["key"])
-    value:= ProcessValue(entry["value"])
-    requests = append(requests, &proxima_client.PutRequest{Name: string(entry["table"].(string)), Key: key, Value: value, Prove: false})
+    entry:= map[string]interface{}(e.(map[string]interface{}))
+    if entry["key"] != nil || entry["value"] != nil {
+      key:= ProcessKey(entry["key"])
+      value:= ProcessValue(entry["value"])
+      requests = append(requests, &proxima_client.PutRequest{Name: string(entry["table"].(string)), Key: key, Value: value, Prove: false})
+    }
    }
    responses , err := db.client.Batch(context.TODO(), &proxima_client.BatchRequest{Requests: requests, Prove: prove})
-
    if err != nil {
      return nil, err
    }
@@ -169,13 +169,15 @@ func (db *ProximaDB) Get(table string, k interface{}, args map[string]interface{
 
 func (db *ProximaDB) Set(table string, k interface{}, v interface{}, args map[string]interface{}) (*ProximaDBResult, error) {
   prove := (args["prove"] != nil) && args["prove"].(bool)
+  if k == nil || v == nil {
+    return nil, errors.New("Error with key and value insertion")
+  }
   key := ProcessKey(k)
   value := ProcessValue(v) //check cache first
   resp, err := db.client.Put(context.TODO(), &proxima_client.PutRequest{Name: table, Key: key, Value: value, Prove: prove})
   if err != nil {
     return nil, err
   }
-  //, new cache for each table ... cache, with get value ...
   return NewProximaDBResult([]byte{}, resp.GetProof(), resp.GetRoot()), nil
 }
 
