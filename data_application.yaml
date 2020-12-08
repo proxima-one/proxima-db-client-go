@@ -1,0 +1,18 @@
+application:
+  name:
+  id:
+  owner:
+  version:
+  header:
+  client:
+    ip:
+    port:
+  config:
+    cache:
+    compression:
+    batching:
+  tables:
+    - table:
+        name:
+        id:
+        config:
