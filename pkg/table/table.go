@@ -5,28 +5,30 @@ package proxima_db_client_go
 
 import (
   json "github.com/json-iterator/go"
-  proxima "github.com/proxima-one/proxima-db-client-go"
+  //proxima "github.com/proxima-one/proxima-db-client-go"
+  proxima_client "github.com/proxima-one/proxima-db-client-go/client"
   "time"
   "fmt"
 )
 
 type ProximaTable struct {
-  name *string //map of tables
+  name *string
   dbId *string
   version *string
+  blockNum int
   header *string
-  isOpen bool  //bool
+  isOpen bool
   isIdle bool
-  sleepInterval time.Duration //goroutine
-  compressionInterval time.Duration //goroutine
-  batchingInterval time.Duration //goroutine
+  sleepInterval time.Duration
+  compressionInterval time.Duration
+  batchingInterval time.Duration
 
-  db *proxima.ProximaDB //inline
-  cache *ProximaTableCache   //inline
+  db *ProximaDatabase
+  cache *ProximaTableCache
 }
 
 func (db *ProximaDatabase) GetTable(name string)  (*ProximaTable, error) {
-  result, err := .db.Get(db.name, name)
+  result, err := db.Get(db.name, name)
   table, err := TableFromConfig(db, result)
   if err != nil {
     return nil, err
@@ -44,6 +46,7 @@ func (table *ProximaTable) Config() (map[string]interface{}) {
   config["name"] = table.name
   config["cacheExpiration"] = table.cacheExpiration
   config["dbId"] = table.dbId
+
   return config
 }
 
@@ -56,15 +59,14 @@ func (table *ProximaTable) Delete() (bool, error) {
     }
     return true, nil
 }
-
-func NewProximaTable(db *proxima.ProximaDB, name, dbId string, cacheExpiration time.Duration) (*ProximaTable) {
-  table :=  &ProximaTable{db: db, name: name, dbId: dbId, cache: NewTableCache(cacheExpiration), isOpen: false, isIdle: false, sleepInterval: db.sleepInterval, compressionInterval: db.compressionInterval, batchingInterval: db.batchingInterval}
-  table.db.addTable(table)
+//header
+func NewProximaTable(db *proxima.ProximaDatabase, name, dbId string, cacheExpiration time.Duration) (*ProximaTable) {
+  table :=  &ProximaTable{db: db, name: name, dbId: dbId, cache: NewTableCache(cacheExpiration), isOpen: false, isIdle: false, sleepInterval: db.sleepInterval, compressionInterval: db.compressionInterval, batchingInterval: db.batchingInterval, header: "Root", blockNum: 0}
   return table
 }
 
-func (table *ProximaTable) Save(name string, cacheExpiration *cacheExpiration, capacity int) (bool, error) {
-  resp, err := table.db.Set(db.name, table.name, table.Config(), nil)
+func (table *ProximaTable) Save(name string) (bool, error) {
+  resp, err := table.db.Set(table.dbId, table.name, table.Config(), nil)
   if err != nil {
     return false, err
   }
@@ -100,6 +102,26 @@ func Compression(table *ProximaTable, interval time.Duration) {
           //compress the database ... table.Compress()
       }
   }
+}
+
+func (table *ProximaTable) Load() (error) {
+  //load
+  return nil
+}
+
+func (table *ProximaTable) Sync() (error) {
+  //sync
+  return nil
+}
+
+func (table *ProximaTable) Update() (bool, error) {
+  //update the headers (table.getHeader)
+  return true, nil
+}
+
+func (table *ProximaTable) Compare() (bool, error) {
+  //compare
+  return true, nil
 }
 
 func Batching(table *ProximaTable, interval time.Duration) {
@@ -143,13 +165,13 @@ func (table *ProximaTable) Close() (error) {
   return nil
 }
 
-func (table *ProximaTable) Query(queryString string, prove bool) (*proxima.ProximaDBResult, error) {
+func (table *ProximaTable) Query(queryString string, prove bool) (*ProximaDBResult, error) {
   table.isIdle = false
   return table.db.Query(table.dbId, queryString, prove);
 }
 
-func (table *ProximaTable) Get(key string,  prove bool) (*proxima.ProximaDBResult, error) {
-  var result *proxima.ProximaDBResult;
+func (table *ProximaTable) Get(key string,  prove bool) (*ProximaDBResult, error) {
+  var result *ProximaDBResult;
   table.isIdle = false
   if cached, found := table.cache.Get(key); found {
   result = cached
@@ -162,21 +184,25 @@ func (table *ProximaTable) Get(key string,  prove bool) (*proxima.ProximaDBResul
   }
   return result, nil
 }
-
-func (table *ProximaTable) Put(key string, vale args[string]interface{}) (*proxima.ProximaDBResult, error) {
-  var result *proxima.ProximaDBResult;
+//fix
+func (table *ProximaTable) Put(key string, value map[string]interface{}) (*ProximaDBResult, error) {
+  var result *ProximaDBResult;
   table.isIdle = false
   result, err := table.db.Set(table.dbId, key, value);
   if err != nil {
     return nil, err
   }
   table.cache.Set(key, result);
+  //update blockNum
+  if value["blockNum"] != nil {
+    table.blockNum = value["blockNum"].(int)
+  }
   return result, err;
 }
 
-func (table *ProximaTable) Remove(key string) (*proxima.ProximaDBResult, error) {
+func (table *ProximaTable) Remove(key string) (*ProximaDBResult, error) {
   table.isIdle = false
-  var result *proxima.ProximaDBResult;
+  var result *ProximaDBResult;
   table.cache.Remove(key);
   return table.db.Remove(table.name, key);
 }

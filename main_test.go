@@ -14,7 +14,7 @@ func randomString(size int) (string) {
 }
 
 
-func TearDown(name string, db *ProximaDB) {
+func MainTestTearDown(name string, db *ProximaDB) {
   db.Close(name)
   db.TableRemove(name)
 }
@@ -27,7 +27,7 @@ func NewDatabase(name string) (*ProximaDB) {
   return proximaClient
 }
 
-func Setup(name string, numEntries int, sizeValues int, prove bool) (*ProximaDB, map[string]string, map[string]interface{}) {
+func MainTestSetup(name string, numEntries int, sizeValues int, prove bool) (*ProximaDB, map[string]string, map[string]interface{}) {
   proximaClient := NewDatabase(name)
   entries := generateKeyValuePairs(numEntries, 32, sizeValues)
   args := make(map[string]interface{})
@@ -73,6 +73,8 @@ func makeBatches(batchSize, total int) ([]int) {
   }
   return append(batches, total)
 }
+
+//update test
 
 var tableName string = "NewTable";
 var name string = "NewTable";

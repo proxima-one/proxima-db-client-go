@@ -6,6 +6,7 @@ import (
   "context"
   proxima_client "github.com/proxima-one/proxima-db-client-go/client"
   grpc "google.golang.org/grpc"
+  "io/ioutil"
   //"fmt"
 )
 
@@ -65,25 +66,50 @@ func (db *ProximaDatabase) Save() (bool, error) {
 TODO
 Checks the yaml file, if the yaml file differs from the db file, then check the latest version, and load, saves the result
 */
- 
+
 
 
 func DBFromConfig(proxima *proxima_client.ProximaServiceClient, config map[string]interface{}) (*ProximaDatabase, error) {
+  
   return NewProximaDatabase(config["name"].(string), config["id"].(string), proxima, nil, config["tables"].([]string), config["sleepInterval"].(time.Duration), config["compressionInterval"].(time.Duration), config["batchingInterval"].(time.Duration))
 }
 
-func (db *ProximaDatabase) Config() (map[string]interface{}) {
+func (db *ProximaDatabase) LoadDatabaseConfig() (map[string]interface{}, error) {
   var dbConfig map[string]interface{}
-  var tables []string
+  var tables []string;
   dbConfig["name"] = db.name
   dbConfig["id"] = db.id
   dbConfig["sleepInterval"] = db.sleepInterval
   dbConfig["compressionInterval"] = db.compressionInterval
   dbConfig["batchingInterval"] = db.batchingInterval
   for name, _ := range db.tables {
-        tables = append(tables, name)
+      tables = append(tables, name)
   }
   dbConfig["tables"] = tables
+  return dbConfig, nil
+}
+
+//
+
+func (db *ProximaDatabase) LoadExternalDatabaseConfig() ([]map[string]interface{}, error) {
+  var dbConfig map[string]interface{}
+  var tables []string;
+  //
+  return dbConfig, nil
+}
+
+func (db *ProximaDatabase) LoadLocalDatabaseConfig() (map[string]interface{}, error) {
+  var dbConfig map[string]interface{}
+  var tables []string;
+  configFile, err := ioutil.ReadFile("db-config.yml")
+    if err != nil {
+        return nil, err
+    }
+    err = yaml.Unmarshal(configFile, dbConfig)
+    if err != nil {
+        return nil, err
+    }
+    return dbConfig, nil
 }
 
 //remove database
@@ -99,10 +125,11 @@ func (db *ProximaDatabase) Delete() (bool, error) {
     }
 }
 
-
+//wrong
 func NewProximaDatabase(name, id string, client *ProximaServiceClient, tables map[string]*ProximaTable, tableList []string, sleepInterval time.Duration,
   compressionInterval time.Duration,
   batchingInterval time.Duration) (*ProximaDatabase, error) {
+    //create table
   for i, name := range tableList {
         db.tables[name], _ = db.GetTable(name);
   }
@@ -139,7 +166,13 @@ func (db *ProximaDatabase) Close() (bool, error) {
     }
 }
 
-func (db *ProximaDatabase) addTable(name string, table *ProximaTable) {
+func (db *ProximaDatabase) CreateTable(name string, cacheExpiration time.Duration) (*ProximaTable, error) {
+    table :=  NewProximaTable(name, db.id, cacheExpiration);
+    db.addTable(table)
+    return table, nil
+}
+
+func (db *ProximaDatabase) AddTable(name string, table *ProximaTable) {
   db.tables[name] = table
   table.Save()
 }
@@ -147,3 +180,33 @@ func (db *ProximaDatabase) addTable(name string, table *ProximaTable) {
 func (db *ProximaDatabase) Delete(name string) {
   delete(db.tables, name)
 }
+
+func (db *ProximaDatabase) Update() (bool, error) {
+  for _, table := range db.tables {
+    table.Update()
+  }
+  return db.Save()
+}
+
+func (db *ProximaDatabase) Sync() (bool, error) {
+  //db.Load(), new table
+  //db.version
+  //db.Compare() between two
+
+  //compare app with
+//compare the table version //time-based
+//compare the table header
+//select the correct table and update
+//write the table to file
+//write the table to application database
+//if incorrect, get the correct data
+
+  return db.Update()
+}
+
+//func load
+
+
+// func (db *ProximaDatabase) Compare(dbA)  {
+//
+// }

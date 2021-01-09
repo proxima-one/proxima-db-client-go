@@ -1,0 +1,14 @@
+version: "3"
+services:
+  db_node:
+    image:
+      build: .
+    depends_on:
+      - db
+    environment:
+        - DB_ADDRESS=db
+        - DB_PORT=50051
+  db:
+    image: chasesmith95/proxima-db-server:latest
+    ports:
+      - "50051:50051"
