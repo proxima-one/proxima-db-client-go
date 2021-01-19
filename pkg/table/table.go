@@ -1,8 +1,5 @@
 package proxima_db_client_go
 
-//this should be for the proxima-db-client
-
-
 import (
   json "github.com/json-iterator/go"
   //proxima "github.com/proxima-one/proxima-db-client-go"
@@ -11,9 +8,14 @@ import (
   "fmt"
 )
 
+func NewProximaTable(db *ProximaDatabase, name, id string, cacheExpiration time.Duration) (*ProximaTable) {
+  table :=  &ProximaTable{db: db, name: name, id: id, cache: NewTableCache(cacheExpiration), isOpen: false, isIdle: false, sleepInterval: db.sleepInterval, compressionInterval: db.compressionInterval, batchingInterval: db.batchingInterval, header: "Root", blockNum: 0}
+  return table
+}
+
 type ProximaTable struct {
   name *string
-  dbId *string
+  id *string
   version *string
   blockNum int
   header *string
@@ -27,52 +29,122 @@ type ProximaTable struct {
   cache *ProximaTableCache
 }
 
-func (db *ProximaDatabase) GetTable(name string)  (*ProximaTable, error) {
+func (table *ProximaTable) GetLatestTableConfig(methodType string) (map[string]map[string]interface{}, error) {
+  config := make(map[string]interface{})
+  config["node"] = table.GetNetworkTableConfig("node")
+  config["local"] = table.GetLocalTableConfig()
+  config["current"] = table.GetCurrentTableConfig()
+  return GetLatestConfig("type", "blockNum", config)
+}
+
+func (table *ProximaTable) GetAllTableConfig(methodType string) (map[string]map[string]interface{}, error) {
+  config := make(map[string]interface{})
+  config["local"] = table.GetLocalTableConfig()
+  config["current"] = table.GetCurrentTableConfig()
+  config["node"] = table.GetNetworkTableConfig("node")
+
+  if methodType == "global" {
+    config["network"] = table.GetNetworkTableConfig("global")
+  }
+  return config, nil
+}
+
+func (table *ProximaTable) GetNetworkTableConfig(methodType string) (map[string]interface{}, error) {
+  return make(map[string]interface{}), nil
+}
+
+func (table *ProximaTable) GetLocalTableConfig() (map[string]interface{}, error) {
   result, err := db.Get(db.name, name)
-  table, err := TableFromConfig(db, result)
   if err != nil {
     return nil, err
   } else {
-    return table, nil
+    return result, nil
   }
 }
 
-func TableFromConfig(db *ProximaDatabase, tableConfig map[string]interface{}) (*ProximaTable, error) {
-  return NewProximaTable(db, tableConfig["name"].(string), tableConfig["dbId"].(string), tableConfig["cacheExpiration"].(time.Duration))
-}
-
-func (table *ProximaTable) Config() (map[string]interface{}) {
-  var config map[string]interface{};
-  config["name"] = table.name
-  config["cacheExpiration"] = table.cacheExpiration
-  config["dbId"] = table.dbId
-
-  return config
-}
-
-func (table *ProximaTable) Delete() (bool, error) {
-    table.Close();
-    table.db.Delete(table.name);
-    _ , err:= db.client.TableRemove(context.TODO(), &proxima_client.TableRemoveRequest{Name: table.dbId})
-    if err != nil {
-      return false, err
-    }
-    return true, nil
-}
-//header
-func NewProximaTable(db *proxima.ProximaDatabase, name, dbId string, cacheExpiration time.Duration) (*ProximaTable) {
-  table :=  &ProximaTable{db: db, name: name, dbId: dbId, cache: NewTableCache(cacheExpiration), isOpen: false, isIdle: false, sleepInterval: db.sleepInterval, compressionInterval: db.compressionInterval, batchingInterval: db.batchingInterval, header: "Root", blockNum: 0}
-  return table
-}
-
-func (table *ProximaTable) Save(name string) (bool, error) {
-  resp, err := table.db.Set(table.dbId, table.name, table.Config(), nil)
+func (table *ProximaTable) SetLocalTableConfig() (bool, error) {
+  resp, err := table.db.Set(table.id, table.name, config, nil)
   if err != nil {
     return false, err
   }
   return resp.GetConfirmation(), nil
 }
 
+func (table *ProximaTable) GetCurrentTableConfig() (map[string]interface{}, error) {
+  config := make(map[string]interface{});
+  config["name"] = table.name
+  config["id"] = table.id
+  config["version"] = table.version
+  config["blockNum"] = table.blockNum
+  config["header"] = table.header
+  config["sleepInterval"] = table.sleepInterval.String()
+  config["compressionInterval"] = table.compressionInterval.String()
+  config["batchingInterval"] = table.batchingInterval.String()
+  config["cacheExpiration"] = table.cache.cacheExpiration.String()
+  return config, nil
+}
+
+func (table *ProximaTable) SetCurrentTableConfig(config map[string]interface{}) (bool, error) {
+  table.name = config["name"].(string)
+  table.id = config["id"].(string)
+  table.version = config["version"].(string)
+  table.blockNum = config["blockNum"].(int)
+  table.header  = config["header"].(string)
+  table.sleepInterval = time.ParseDuration(config["sleepInterval"].(string))
+  table.compressionInterval = time.ParseDuration(config["compressionInterval"].(string))
+  table.batchingInterval = time.ParseDuration(config["batchingInterval"].(string))
+  table.cache = NewTableCache(time.ParseDuration(config["cacheExpiration"].(string)))
+  return true, nil
+}
+
+func (table *ProximaTable) Sync(syncType string, syncConfig map[string]interface{}) (map[string]interface{}, error) {
+  //tf
+  newConfig, err := db.GetMaxExternalDatabaseConfig(syncConfig)
+  if newConfig["type"].(string) == "network" {
+      table.Load("global", syncConfig)
+  }
+
+  if newConfig["type"].(string) == "node" {
+      table.Load("node", syncConfig)
+  }
+  table.Load("local", syncConfig)
+  db.PushNetworkTableConfig("node");
+  db.PushNetworkTable("node");
+  return newConfig, nil
+}
+
+func (table *ProximaDB) Load(configType string, config map[string]interface{}) {
+  table.Update()
+  table.SetCurrentTableConfig(config)
+  if configType == "global" {
+      table.PullNetworkTable("global")
+      table.PullNetworkTableConfig("global")
+  }
+  if configType == "node" {
+      table.PullNetworkTable("node")
+      table.PullNetworkTableConfig("node")
+  }
+}
+
+func (table *ProximaTable) Update() (bool, error) {
+  newConfig, err := db.GetMaxInternalDatabaseConfig()
+  syncType := config["type"].(string)
+  syncConfig := config[syncType].(map[string]interface{})
+
+  table.SetCurrentTableConfig(syncConfig);
+  db.SetLocalDatabaseConfig();
+  return true, nil
+}
+
+func (table *ProximaTable) Delete() (bool, error) {
+    table.Close();
+    table.db.Delete(table.name);
+    _ , err:= db.client.TableRemove(context.TODO(), &proxima_client.TableRemoveRequest{Name: table.id})
+    if err != nil {
+      return false, err
+    }
+    return true, nil
+}
 
 func (table *ProximaTable) Open() (error) {
   if table.isOpen {
@@ -102,26 +174,6 @@ func Compression(table *ProximaTable, interval time.Duration) {
           //compress the database ... table.Compress()
       }
   }
-}
-
-func (table *ProximaTable) Load() (error) {
-  //load
-  return nil
-}
-
-func (table *ProximaTable) Sync() (error) {
-  //sync
-  return nil
-}
-
-func (table *ProximaTable) Update() (bool, error) {
-  //update the headers (table.getHeader)
-  return true, nil
-}
-
-func (table *ProximaTable) Compare() (bool, error) {
-  //compare
-  return true, nil
 }
 
 func Batching(table *ProximaTable, interval time.Duration) {
@@ -167,7 +219,7 @@ func (table *ProximaTable) Close() (error) {
 
 func (table *ProximaTable) Query(queryString string, prove bool) (*ProximaDBResult, error) {
   table.isIdle = false
-  return table.db.Query(table.dbId, queryString, prove);
+  return table.db.Query(table.id, queryString, prove);
 }
 
 func (table *ProximaTable) Get(key string,  prove bool) (*ProximaDBResult, error) {
@@ -176,7 +228,7 @@ func (table *ProximaTable) Get(key string,  prove bool) (*ProximaDBResult, error
   if cached, found := table.cache.Get(key); found {
   result = cached
   } else {
-  result, err := table.db.Get(table.dbId, key, true) //cache result
+  result, err := table.db.Get(table.id, key, true) //cache result
   if err != nil {
     return nil, err
   }
@@ -188,7 +240,7 @@ func (table *ProximaTable) Get(key string,  prove bool) (*ProximaDBResult, error
 func (table *ProximaTable) Put(key string, value map[string]interface{}) (*ProximaDBResult, error) {
   var result *ProximaDBResult;
   table.isIdle = false
-  result, err := table.db.Set(table.dbId, key, value);
+  result, err := table.db.Set(table.id, key, value);
   if err != nil {
     return nil, err
   }

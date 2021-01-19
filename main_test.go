@@ -19,13 +19,13 @@ func MainTestTearDown(name string, db *ProximaDB) {
   db.TableRemove(name)
 }
 
-func NewDatabase(name string) (*ProximaDB) {
-  ip := "0.0.0.0"
-  port := "50051"
-  proximaClient := NewProximaDB(ip, port)
-  proximaClient.Open(name)
-  return proximaClient
-}
+// func NewDatabase(name string) (*ProximaDB) {
+//   ip := "0.0.0.0"
+//   port := "50051"
+//   proximaClient := (ip, port)
+//   proximaClient.Open(name)
+//   return proximaClient
+// }
 
 func MainTestSetup(name string, numEntries int, sizeValues int, prove bool) (*ProximaDB, map[string]string, map[string]interface{}) {
   proximaClient := NewDatabase(name)
@@ -87,25 +87,46 @@ var entries map[string]string = generateKeyValuePairs(numEntries, 32, sizeValues
 var batchEntries []interface{} = generateEntries(tableName, entries)
 
 //
-// func TestPut(t *testing.T) {
-//   for key, value := range keyValues {
-//     _, putErr := proximaClient.Set(name, key, value, args)
-//     if putErr != nil {
-//       t.Error("Cannot put value: ", putErr)
-//     }
-//     //fmt.Println(string(result.GetProof().GetRoot()))
-//   }
-// }
+
+func TestCreateDatabase(t *testing.T) {
+  var proximaClient *ProximaDB = NewDatabase(name);
+    _, putErr := proximaClient.Set(name, key, value, args)
+    if putErr != nil {
+      t.Error("Cannot put value: ", putErr)
+    }
+
+    if tableErr != nil {
+      t.Error("Cannot make table: ", tableErr)
+    }
+    //fmt.Println(string(result.GetProof().GetRoot()))
+}
+
+func TestLoadDatabase(t *testing.T) {
+  if tableErr != nil {
+    t.Error("Cannot make table: ", tableErr)
+  }
+}
+
+
+func TestPut(t *testing.T) {
+  for key, value := range keyValues {
+    _, putErr := proximaClient.Set(name, key, value, args)
+    if putErr != nil {
+      t.Error("Cannot put value: ", putErr)
+    }
+    //fmt.Println(string(result.GetProof().GetRoot()))
+  }
+}
 //
 //
-// func TestGet(t *testing.T) {
-//   for key, _ := range keyValues {
-//     _, getErr := proximaClient.Get(name, key, args)
-//     if getErr != nil {
-//       t.Error("Cannot get value: ", getErr)
-//     }
-//   }
-// }
+func TestGet(t *testing.T) {
+  for key, _ := range keyValues {
+    _, getErr := proximaClient.Get(name, key, args)
+    if getErr != nil {
+      t.Error("Cannot get value: ", getErr)
+    }
+  }
+}
 
 func TestBatch(t *testing.T) {
   // sizeValues := 300

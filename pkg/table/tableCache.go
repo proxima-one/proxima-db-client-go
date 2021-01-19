@@ -2,7 +2,6 @@ package proxima_db_client_go
 
 import (
   cache "github.com/patrickmn/go-cache"
-  json "github.com/json-iterator/go"
   "time"
 )
 

@@ -32,6 +32,26 @@ func NewTestApplicationDB() (*ProximaDastabase, error) {
   return NewProximaDatabase(appName, id, proximaClient, tables, tableList, sleepInterval, compressionInterval, batchingInterval)
 }
 
+//test Application Loading
+
+//test database loading
+
+//test table loading
+
+//sync + update db, table
+
+//remove tables
+
+//delete
+
+//batching
+
+//compression
+
+//sleeping
+
+
+
 func TableSetup() (map[string][]string) {
   var num int= 20
   var removeLen int= (num-1)/2
