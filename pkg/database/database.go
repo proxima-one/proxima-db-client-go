@@ -1,4 +1,3 @@
-
 package database
 
 
@@ -12,37 +11,10 @@ import (
 
 var DefaultDatabaseConfig = make(map[string]interface{}, 0)
 
-func DefaultProximaServiceClient(dbIP, dbPort string) (client.ProximaServiceClient, error)   {
-  address := dbIP + ":" + dbPort
-  maxMsgSize := 1024*1024*1024
-  conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithDefaultCallOptions(
-      grpc.MaxCallRecvMsgSize(maxMsgSize),
-      grpc.MaxCallSendMsgSize(maxMsgSize)))
-  if err != nil {
-    return nil, err
-  }
-  return proxima_client.NewProximaServiceClient(conn), nil
-}
+
 
 func  (db *ProximaDatabase) NewDefaultTable(name string) (*ProximaDatabase, error) {
   return NewProximaTable(db, name, db.id, db.sleep), nil
-}
-
-func NewDefaultDatabase(name, id string) (*ProximaDatabase, error) {
-  ip := getEnv("DB_ADDRESS" , "0.0.0.0")
-  port :=  getEnv("DB_PORT", "50051")
-
-  client, err := DefaultProximaServiceClient(ip, port)
-  if err != nil {
-    client = make(*Proxima)
-  }
-  clients := make([]interface{})
-  sleepInterval := time.ParseDuration()
-  compressionInterval := time.ParseDuration()
-  batchingInterval := time.ParseDuration()
-
-  return NewProximaDatabase(name, id, "0.0.0.0", client, clients, sleepInterval,
-    compressionInterval, batchingInterval), nil
 }
 
 func NewProximaDatabase(name, version, id string, client *client.ProximaServiceClient, clients []interface{}, sleepInterval time.Duration,
@@ -98,8 +70,8 @@ func GetClient(clients []interface{}) (client.ProximaServiceClient, error) {
 }
 
 func LoadProximaDatabase(config map[string]interface{}) (*ProximaDatabase, error) {
-  clients, err := db.GetClients(config)
-  client, clientErr := db.GetClient(clients)
+  clients, err := GetClients(config)
+  client, clientErr := GetClient(clients)
 
   db := NewProximaDatabase(config["name"].(string), config["id"].(string), client, clients, time.ParseDuration(config["sleep"].(string)), time.ParseDuration(config["compression"].(string)), time.ParseDuration(config["batching"].(string)))
 

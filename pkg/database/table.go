@@ -3,9 +3,8 @@ package database
 
 import (
   json "github.com/json-iterator/go"
-  //proxima "github.com/proxima-one/proxima-db-client-go"
-  proxima_db "github.com/proxima-one/proxima-db-client-go/client"
-  proxima_client "github.com/proxima-one/proxima-db-client-go/client"
+  //proxima "github.com/proxima-one/proxima-db-client-go
+  //client "github.com/proxima-one/proxima-db-client-go/client"
   "time"
   "fmt"
 )
@@ -141,7 +140,7 @@ func (table *ProximaTable) Update() (bool, error) {
 func (table *ProximaTable) Delete() (bool, error) {
     table.Close();
     table.db.Delete(table.name);
-    _ , err:= db.client.TableRemove(context.TODO(), &proxima_client.TableRemoveRequest{Name: table.id})
+    _ , err:= db.client.TableRemove(context.TODO(), &client.TableRemoveRequest{Name: table.id})
     if err != nil {
       return false, err
     }

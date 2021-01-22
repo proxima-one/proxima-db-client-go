@@ -1,8 +1,8 @@
-package proxima_db_client_go
+package database
 
 import (
   "testing"
-  database "github.com/proxima-one/proxima-db-client-go/database"
+  //database "github.com/proxima-one/proxima-db-client-go/database"
   _ "math/rand"
   _ "fmt"
   _ "time"
@@ -23,7 +23,7 @@ var args map[string]interface{} = map[string]interface{}{"prove":false};
 
 func BasicDatabaseTest(t *testing.T) {
 
-  db, databaseErr := database.NewDefaultDatabase(databaseName, databaseID)
+  db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
   if databaseErr != nil {
     t.Error("Cannot create database: ", databaseErr)
   }
@@ -33,11 +33,11 @@ func BasicDatabaseTest(t *testing.T) {
     t.Error("Cannot make table: ", tableErr)
   }
 
-  var testEntries map[string]string = GenerateKeyValuePairs(keySize, valueSize, numEntries, args)
-  t.Run("Put", t.TestPut(table, testEntries))
-  t.Run("Get", t.TestGet(table, testEntries)
-  t.Run("Remove", t.TestRemove(table, testEntries))
-  db.Delete()
+  // var testEntries map[string]string = GenerateKeyValuePairs(keySize, valueSize, numEntries, args)
+  // t.Run("Put", t.TestPut(table, testEntries))
+  // t.Run("Get", t.TestGet(table, testEntries)
+  // t.Run("Remove", t.TestRemove(table, testEntries))
+  // db.Delete()
 }
 
 // func AdvancedDatabaseTest1(t *testing.T) {
