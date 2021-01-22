@@ -1,5 +1,5 @@
 
-package proxima_db_client_go
+package database
 
 import (
   "context"

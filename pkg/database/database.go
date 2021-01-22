@@ -1,10 +1,10 @@
 
-package proxima_db_client_go
+package database
 
 
 import (
   "context"
-  proxima_client "github.com/proxima-one/proxima-db-client-go/client"
+  client "github.com/proxima-one/proxima-db-client-go/client"
   grpc "google.golang.org/grpc"
   "io/ioutil"
   //"fmt"
@@ -12,7 +12,7 @@ import (
 
 var DefaultDatabaseConfig = make(map[string]interface{}, 0)
 
-func DefaultProximaServiceClient(dbIP, dbPort string) (proxima_client.ProximaServiceClient, error)   {
+func DefaultProximaServiceClient(dbIP, dbPort string) (client.ProximaServiceClient, error)   {
   address := dbIP + ":" + dbPort
   maxMsgSize := 1024*1024*1024
   conn, err := grpc.Dial(address, grpc.WithInsecure(), grpc.WithDefaultCallOptions(
@@ -24,12 +24,18 @@ func DefaultProximaServiceClient(dbIP, dbPort string) (proxima_client.ProximaSer
   return proxima_client.NewProximaServiceClient(conn), nil
 }
 
-func  (db *ProximaDatabase) NewDefaultTable(name, id string) (*ProximaDatabase, error) {
-  return NewProximaTable(db, name, id, db.sleep), nil
+func  (db *ProximaDatabase) NewDefaultTable(name string) (*ProximaDatabase, error) {
+  return NewProximaTable(db, name, db.id, db.sleep), nil
 }
 
 func NewDefaultDatabase(name, id string) (*ProximaDatabase, error) {
-  client := make(*ProximaServiceClient)
+  ip := getEnv("DB_ADDRESS" , "0.0.0.0")
+  port :=  getEnv("DB_PORT", "50051")
+
+  client, err := DefaultProximaServiceClient(ip, port)
+  if err != nil {
+    client = make(*Proxima)
+  }
   clients := make([]interface{})
   sleepInterval := time.ParseDuration()
   compressionInterval := time.ParseDuration()
@@ -39,7 +45,7 @@ func NewDefaultDatabase(name, id string) (*ProximaDatabase, error) {
     compressionInterval, batchingInterval), nil
 }
 
-func NewProximaDatabase(name, version, id string, client *ProximaServiceClient, clients []interface{}, sleepInterval time.Duration,
+func NewProximaDatabase(name, version, id string, client *client.ProximaServiceClient, clients []interface{}, sleepInterval time.Duration,
   compressionInterval time.Duration,
   batchingInterval time.Duration) (*ProximaDatabase, error) {
 
@@ -74,7 +80,7 @@ func GetClients(config map[string]interface{}) ([]interface{}, error) {
   return clients, nil
 }
 
-func GetClient(clients []interface{}) (proxima_client.ProximaServiceClient, error) {
+func GetClient(clients []interface{}) (client.ProximaServiceClient, error) {
   ip := getEnv("DB_ADDRESS" , "0.0.0.0")
   port :=  getEnv("DB_PORT", "50051")
   client, err := DefaultProximaServiceClient(ip, port)
@@ -106,7 +112,7 @@ func LoadProximaDatabase(config map[string]interface{}) (*ProximaDatabase, error
 }
 
 type ProximaDatabase struct {
-  client proxima_client.ProximaServiceClient
+  client client.ProximaServiceClient
   name string
   id string
   tables map[string]*ProximaTable

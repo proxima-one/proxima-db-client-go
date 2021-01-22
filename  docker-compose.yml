@@ -1,8 +1,10 @@
 version: "3"
 services:
-  db_node:
+  db__test_node:
     image:
-      build: .
+      build:
+        context: .
+        dockerfile: Dockerfile.test
     depends_on:
       - db
     environment:

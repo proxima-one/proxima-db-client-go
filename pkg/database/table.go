@@ -1,8 +1,10 @@
-package proxima_db_client_go
+package database
+//package table
 
 import (
   json "github.com/json-iterator/go"
   //proxima "github.com/proxima-one/proxima-db-client-go"
+  proxima_db "github.com/proxima-one/proxima-db-client-go/client"
   proxima_client "github.com/proxima-one/proxima-db-client-go/client"
   "time"
   "fmt"
