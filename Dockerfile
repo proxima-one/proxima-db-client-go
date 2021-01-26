@@ -2,4 +2,4 @@ FROM golang:alpine
 RUN mkdir /app
 ADD . /app/
 WORKDIR /app
-CMD ["go test"]
+CMD CGO_ENABLED=0 go test ./...

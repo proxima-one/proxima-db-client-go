@@ -1,8 +1,8 @@
-package database
+package proxima_db_client_go
 
 import (
   "testing"
-  //database "github.com/proxima-one/proxima-db-client-go/database"
+  //proxima "github.com/proxima-one/proxima-db-client-go"
   _ "math/rand"
   _ "fmt"
   _ "time"
@@ -20,6 +20,9 @@ var keySize int = 32;
 var args map[string]interface{} = map[string]interface{}{"prove":false};
 
 
+//docker run proxima-db with ip and port transformation
+
+
 
 func BasicDatabaseTest(t *testing.T) {
 
@@ -28,15 +31,20 @@ func BasicDatabaseTest(t *testing.T) {
     t.Error("Cannot create database: ", databaseErr)
   }
 
-  table, tableErr := db.NewDefaultTable(tableName)
+  _, tableErr := db.NewDefaultTable(tableName)
   if tableErr != nil {
     t.Error("Cannot make table: ", tableErr)
   }
+  //var pairs map[string]string = GenerateKeyValuePairs(keySize, valueSize, numEntries)
+  //var getOperations []interface{} = GenerateDatabaseGetOperations(tableName, pairs)
+  //var putOperations []interface{} = GenerateDatabasePutOperations(tableName, pairs)
+  //var removeOperations []interface{} = GenerateDatabaseRemoveOperations(tableName, pairs)
 
-  // var testEntries map[string]string = GenerateKeyValuePairs(keySize, valueSize, numEntries, args)
-  // t.Run("Put", t.TestPut(table, testEntries))
-  // t.Run("Get", t.TestGet(table, testEntries)
-  // t.Run("Remove", t.TestRemove(table, testEntries))
+
+
+  //t.Run("Put", TestPut(t, table, testEntries))
+  //t.Run("Get", TestGet(t, table, testEntries))
+  //t.Run("Remove", TestRemove(t, table, testEntries))
   // db.Delete()
 }
 
@@ -60,32 +68,76 @@ func BasicDatabaseTest(t *testing.T) {
 //   t.Run("Get", t.TestGet(table, testEntries)
 //   t.Run("Remove", t.TestRemove(table, testEntries))
 // }
+//
+func TestGet(t *testing.T) {
+  db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
+  if databaseErr != nil {
+    t.Error("Cannot create database: ", databaseErr)
+  }
 
-func (t *testing.T) TestGet(table *ProximaTable, entries map[string]interface{}) {
+  table, tableErr := db.NewDefaultTable(tableName)
+  if tableErr != nil {
+    t.Error("Cannot make table: ", tableErr)
+  }
+
+  var entries map[string]string = GenerateKeyValuePairs(keySize, valueSize, numEntries)
+  //var putOperations []interface{} = GenerateDatabasePutOperations(tableName, pairs)
+//var args map
   for key, _ := range entries {
-    _, getErr := table.Get(key, args)
+    _, getErr := table.Get(key, false)
     if getErr != nil {
       t.Error("Cannot get value: ", getErr)
     }
   }
 }
-
-func (t *testing.T) TestRemove(table *ProximaTable, entries map[string]interface{}) {
-  for key, _ := range entries {
-    _, removeErr := table.Remove(key, args)
-    if removeErr != nil {
-      t.Error("Cannot remove value from key: ", removeErr)
+// //
+// func TestRemove(t *testing.T) {
+//   db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
+//   if databaseErr != nil {
+//     t.Error("Cannot create database: ", databaseErr)
+//   }
+//
+//   table, tableErr := db.NewDefaultTable(tableName)
+//   if tableErr != nil {
+//     t.Error("Cannot make table: ", tableErr)
+//   }
+//
+//   var entries map[string]string = GenerateKeyValuePairs(keySize, valueSize, numEntries)
+//   for key, _ := range entries {
+//     _, removeErr := table.Remove(key, false)
+//     if removeErr != nil {
+//       t.Error("Cannot remove value from key: ", removeErr)
+//     }
+//   }
+// }
+//
+func TestPut(t *testing.T) {
+    db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
+    if databaseErr != nil {
+      t.Error("Cannot create database: ", databaseErr)
     }
-  }
-}
 
-func (t *testing.T) TestPut(table *ProximaTable, entries map[string]interface{}) {
+    table, tableErr := db.NewDefaultTable(tableName)
+    if tableErr != nil {
+      t.Error("Cannot make table: ", tableErr)
+    }
+
+    var entries map[string]string = GenerateKeyValuePairs(keySize, valueSize, numEntries)
+    //var putOperations []interface{} = GenerateDatabasePutOperations(tableName, pairs)
+  //var args map
   for key, value := range entries {
-    _, putErr := table.Put(key, value, args)
+    _, putErr := table.Put(key, value, false, args)
     if putErr != nil {
-      t.Error("Cannot put key and value: ", getErr)
+      t.Error("Cannot put key and value: ", putErr)
     }
   }
+
+  //   for key, _ := range entries {
+  //     _, getErr := table.Get(key, args)
+  //     if getErr != nil {
+  //       t.Error("Cannot get value: ", getErr)
+  //     }
+  //   }
 }
 
 // func (t *testing.T) BasicTableTest() {

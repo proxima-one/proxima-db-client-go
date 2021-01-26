@@ -1,27 +1,10 @@
 package proxima_db_client_go
 
 import (
-  "testing"
   "math/rand"
-  "fmt"
-  "time"
+  _ "fmt"
+  _ "time"
 )
-
-//generate Entries
-
-//generateEntry
-
-//generateTables
-
-//generateTable
-
-//generateTableCache
-
-//generateDBApplication
-
-
-
-
 
 func RandomString(size int) (string) {
   bytes := make([]byte, size)
@@ -29,27 +12,27 @@ func RandomString(size int) (string) {
   return string(bytes)
 }
 
-func NewDatabase(name string) (*ProximaDB) {
-  ip := "0.0.0.0"
-  port := "50051"
-  proximaClient := NewProximaDB(ip, port)
-  proximaClient.Open(name)
-  return proximaClient
-}
+// func NewDatabase(name string) (*ProximaDB) {
+//   ip := "0.0.0.0"
+//   port := "50051"
+//   proximaClient := NewProximaDB(ip, port)
+//   proximaClient.Open(name)
+//   return proximaClient
+// }
 
-func MainSetup(name string, numEntries int, sizeValues int, prove bool) (*ProximaDB, map[string]string, map[string]interface{}) {
-  proximaClient := NewDatabase(name)
-  entries := generateKeyValuePairs(numEntries, 32, sizeValues)
-  args := make(map[string]interface{})
-  args["prove"] = prove
-  return proximaClient, entries, args
-}
+// func MainSetup(name string, numEntries int, sizeValues int, prove bool) (*ProximaDB, map[string]string, map[string]interface{}) {
+//   proximaClient := NewDatabase(name)
+//   entries := generateKeyValuePairs(numEntries, 32, sizeValues)
+//   args := make(map[string]interface{})
+//   args["prove"] = prove
+//   return proximaClient, entries, args
+// }
 
-func GenerateKeyValuePairings(num int, keySize int, valSize int) (map[string]string){
+func GenerateKeyValuePairs(num int, keySize int, valSize int) (map[string]string){
   mapping := make(map[string]string)
   for i := 0; i < num; i++ {
-    key := randomString(keySize)
-    value := randomString(valSize)
+    key := RandomString(keySize)
+    value := RandomString(valSize)
     mapping[key] = value
   }
   return mapping
@@ -101,7 +84,7 @@ func GenerateDatabaseRemoveOperations(tableName string, pairs map[string]string)
 //   }
 //   return mapping
 // }
-// 
+//
 // func generateKeyValuePairs(num int, keySize int, valSize int) (map[string]string){
 //   mapping := make(map[string]string)
 //   for i := 0; i < num; i++ {

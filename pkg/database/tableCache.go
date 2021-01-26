@@ -15,12 +15,15 @@ func NewTableCache(cacheExpiration time.Duration) (*ProximaTableCache) {
   return &ProximaTableCache{cache: cache.New(cacheExpiration, 5*time.Minute), cacheExpiration: cacheExpiration, capacity: -1}
 }
 
-func (cache *ProximaTableCache) Get(key string) (*proxima.ProximaDBResult, error) {
+func (cache *ProximaTableCache) Get(key string) (*ProximaDBResult, bool) {
+
   cached, found := cache.cache.Get(key)
   if found {
     cache.cache.SetDefault(key, cached);
+    return cached.(*ProximaDBResult), found
   }
-  return cached.(*proxima.ProximaDBResult), found
+
+  return nil, found
 }
 
 func (cache *ProximaTableCache) Remove(key string) {

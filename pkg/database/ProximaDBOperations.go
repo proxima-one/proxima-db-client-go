@@ -2,9 +2,11 @@ package database
 
 import (
   "context"
-  //client "github.com/proxima-one/proxima-db-client-go/client"
-  grpc "google.golang.org/grpc"
+  client "github.com/proxima-one/proxima-db-client-go/pkg/client"
+  //grpc "google.golang.org/grpc"
   //"fmt"
+
+  "errors"
 )
 
 type ProximaDBResult struct {
@@ -51,7 +53,7 @@ func (db *ProximaDatabase) Query(table string, data string, args map[string]inte
   return proximaResults, nil
 }
 
-func (db *ProximaDatabase) Get(table string, k interface{}, args map[string]interface{}) (*ProximaDBResult, error){
+func (db *ProximaDatabase) Get(table string, k interface{}, args map[string]interface{}) (*ProximaDBResult, error) {
   prove := (args["prove"] != nil) && args["prove"].(bool)
   key := ProcessKey(k) //check cache first
   resp, err := db.client.Get(context.TODO(), &client.GetRequest{Name: table, Key: key, Prove: prove})
