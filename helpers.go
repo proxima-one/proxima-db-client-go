@@ -28,6 +28,15 @@ func RandomString(size int) (string) {
 //   return proximaClient, entries, args
 // }
 
+func GenerateTableList(num int) ([]string){
+  tableList := make([]string, 0)
+  for i := 0; i < num; i++ {
+    tableName := RandomString(32)
+    tableList = append(tableList, tableName)
+  }
+  return tableList
+}
+
 func GenerateKeyValuePairs(num int, keySize int, valSize int) (map[string]string){
   mapping := make(map[string]string)
   for i := 0; i < num; i++ {

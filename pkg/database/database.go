@@ -9,6 +9,7 @@ import (
   client "github.com/proxima-one/proxima-db-client-go/pkg/client"
   //"fmt"
   "math/rand"
+  "encoding/json"
   "os"
 )
 
@@ -181,40 +182,36 @@ func (db *ProximaDatabase) Update() (bool, error) {
   syncConfig := newConfig[syncType].(map[string]interface{})
   db.SetCurrentDatabaseConfig(syncConfig, true)
   db.SetLocalDatabaseConfig();
-  db.PushNetworkDatabaseConfig("node"); //Local Node
+  db.PushNetworkDatabaseConfig("node");
   db.PushNetworkDatabase("node");
   return true, nil
 }
 
 func (db *ProximaDatabase) SetCurrentDatabaseConfig(newConfig map[string]interface{}, includeTables bool) (bool, error) {
-  // var dbConfig map[string]interface{}
-  // tables :=  make([]interface{}, 0)
-  // db.name = newConfig["name"].(string)
-  // newConfig["id"] = db.id
-  // dbConfig["sleepInterval"] = db.sleep.String()
-  // dbConfig["compressionInterval"] = db.compression.String()
-  // dbConfig["batchingInterval"] = db.batching.String()
-  //  for name, tableConfig := range newTables {
-    //   go db.LoadTable(syncType, tableConfig)
-    // }
-    //
-    // for _, table := range db.tables {
-    //   if !newTables.Contains(name) {
-    //     go db.RemoveTable(name)
-    //   } else {
-    //     go table.Update()
-    //   }
-    // }
-  // if includeTables {
-  //   for name, table := range db.tables {
-  //       c, err := table.GetCurrentTableConfig();
-  //       if err != nil {
-  //           return false, err
-  //       }
-  //           tables = append(tables, c)
-  //   }
-  //   dbConfig["tables"] = tables
-  // }
+  db.name = newConfig["name"].(string)
+  db.id = newConfig["id"].(string)
+  db.version = newConfig["version"].(string)
+  db.sleep, _ = time.ParseDuration(newConfig["sleep"].(string))
+  db.compression, _ = time.ParseDuration(newConfig["compression"].(string))
+  db.batching, _ = time.ParseDuration(newConfig["batching"].(string))
+
+  if includeTables {
+  newTables := newConfig["tables"].([]interface{})
+  newTablesMap := make(map[string]string)
+   for _, t := range newTables {
+     tableConfig := t.(map[string]interface{})
+     name := tableConfig["name"].(string)
+     newTablesMap[name] = name
+      go db.LoadTable("", tableConfig)
+    }
+
+    for _, table := range db.tables {
+      name := table.name
+      if newTablesMap[name] == name {
+        go db.RemoveTable(name)
+      }
+    }
+  }
   return true, nil
 }
 
@@ -238,12 +235,13 @@ func (db *ProximaDatabase) GetCurrentDatabaseConfig() (map[string]interface{}, e
 }
 
 func (db *ProximaDatabase) GetLocalDatabaseConfig() (map[string]interface{}, error) {
-  result, _:= db.Get(db.id, "config", nil)
-  if result != nil {
-    return nil, nil
+  resp, err := db.Get(db.id, "config", nil)
+  config := make(map[string]interface{})
+  if err != nil || resp == nil  {
+    return config, err
   }
-  //unmarshall
-  return nil, nil
+  json.Unmarshal(resp.GetValue(), &config)
+  return config, nil
 }
 
 func (db *ProximaDatabase) SetLocalDatabaseConfig() (map[string]interface{}, error) {
@@ -281,8 +279,9 @@ func (db *ProximaDatabase) AddTable(name string, table *ProximaTable) {
   db.tables[name] = table
 }
 
-func (db *ProximaDatabase) RemoveTable(name string) {
+func (db *ProximaDatabase) RemoveTable(name string) (bool, error) {
   delete(db.tables, name)
+  return true, nil
 }
 
 func (db *ProximaDatabase) Delete() (bool, error) {

@@ -8,6 +8,7 @@ import (
   "context"
   "time"
   _ "fmt"
+  "encoding/json"
 )
 
 func NewProximaTable(db *ProximaDatabase, name, id string, cacheExpiration time.Duration) (*ProximaTable) {
@@ -56,12 +57,13 @@ func (table *ProximaTable) GetNetworkTableConfig(methodType string) (map[string]
 }
 
 func (table *ProximaTable) GetLocalTableConfig() (map[string]interface{}, error) {
-  _, err := table.db.Get(table.id, table.name, nil)
-  if err != nil {
+  resp, err := table.db.Get(table.id, table.name, nil)
+  if err != nil || resp == nil {
     return nil, err
   } else {
-
-    return nil, nil
+    config := make(map[string]interface{})
+    json.Unmarshal(resp.GetValue(), &config)
+    return config, nil
   }
 }
 
