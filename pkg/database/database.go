@@ -54,6 +54,9 @@ func (db *ProximaDatabase) UpdateClients(newClients []interface{}) {
 }
 
 func GetClients(config map[string]interface{}) ([]interface{}, error) {
+  if config["client"] == nil {
+    return make([]interface{}, 0), nil
+  }
   clients := config["clients"].([]interface{})
   return clients, nil
 }

@@ -3,7 +3,7 @@ package proxima_db_client_go
 import (
 	"testing"
 	proxima_database "github.com/proxima-one/proxima-db-client-go/pkg/database"
-	"fmt"
+	_ "fmt"
 	"math/rand"
 	_ "time"
 )
@@ -125,7 +125,6 @@ func DatabaseCreationTest(t *testing.T) {
 
 
 func TableCreationTest(t *testing.T) {
-    fmt.Println("Sending")
     db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
     if databaseErr != nil {
       t.Error("Cannot create database: ", databaseErr)
