@@ -7,7 +7,7 @@ import (
   _ "io/ioutil"
   "time"
   client "github.com/proxima-one/proxima-db-client-go/pkg/client"
-  //"fmt"
+  _ "fmt"
   "math/rand"
   "encoding/json"
   "os"
@@ -21,27 +21,33 @@ func  (db *ProximaDatabase) NewDefaultTable(name string) (*ProximaTable, error) 
   return NewProximaTable(db, name, db.id, db.sleep), nil
 }
 
-func NewProximaDatabase(name, version, id string, client client.ProximaServiceClient, clients []interface{}, sleepInterval time.Duration,
+func NewProximaDatabase(name, id, version string, client client.ProximaServiceClient, clients []interface{}, sleepInterval time.Duration,
   compressionInterval time.Duration,
   batchingInterval time.Duration) (*ProximaDatabase, error) {
 
-  db := &ProximaDatabase{name: name, id: id, version: version, client: client, clients: clients, tables: nil, sleep: sleepInterval, compression: compressionInterval, batching: batchingInterval}
+  db := &ProximaDatabase{name: name, id: id, version: version, client: client, clients: clients, tables: make(map[string]*ProximaTable), sleep: sleepInterval, compression: compressionInterval, batching: batchingInterval}
   return db, nil
 }
 
 func CheckLatest(checkType string, config map[string]interface{}) (map[string]interface{}, error) {
-  currentType := ""
-  currentVersion := ""
-  currentName := ""
+  currentType := "."
+  currentVersion := "0.0.0"
+  //currentName := "."
   returnValue := make(map[string]interface{})
-
+//fmt.Println(config)
   for newType, nConfig := range config {
+    if nConfig == nil {
+      continue
+    }
     var newConfig map[string]interface{} = nConfig.(map[string]interface{})
+    if newConfig[checkType] == nil {
+      continue
+    }
     newVersion := newConfig[checkType].(string)
-    if currentVersion < newVersion || currentName == "" {
+    if currentVersion <= newVersion {
       currentType = newType
       currentVersion = newVersion
-      currentName = newConfig["name"].(string)
+      //currentName = newConfig["name"].(string)
     }
   }
   returnValue["type"] = currentType
@@ -105,10 +111,17 @@ func LoadProximaDatabase(config map[string]interface{}) (*ProximaDatabase, error
   client, _ := GetClient(clients)
   name := config["name"].(string)
   id := config["id"].(string)
-  sleep,_ := time.ParseDuration(config["sleep"].(string))
+
+  intervalConfig := config["config"].(map[string]interface{})
+  //check config
+  sleepStr := intervalConfig["sleep"].(string)
+  compressionStr := intervalConfig["compression"].(string)
+  batchingStr := intervalConfig["batching"].(string)
+  sleep, _ := time.ParseDuration(sleepStr)
+  compression, _ := time.ParseDuration(compressionStr)
+  batching, _ := time.ParseDuration(batchingStr)
+
   version := config["version"].(string)
-  compression, _ :=time.ParseDuration(config["compression"].(string))
-  batching, _ :=time.ParseDuration(config["batching"].(string))
 
   db, _ := NewProximaDatabase(name, id,  version, client, clients, sleep, compression, batching)
   var tables []interface{} = config["tables"].([]interface{})
@@ -181,28 +194,40 @@ func (db *ProximaDatabase) Sync() (bool, error) {
 
 func (db *ProximaDatabase) Update() (bool, error) {
   newConfig, _ := db.GetLatestDatabaseConfig("node")
-  syncType := newConfig["type"].(string)
-  syncConfig := newConfig[syncType].(map[string]interface{})
-  db.SetCurrentDatabaseConfig(syncConfig, true)
-  db.SetLocalDatabaseConfig();
-  db.PushNetworkDatabaseConfig("node");
-  db.PushNetworkDatabase("node");
-  return true, nil
+  syncType := newConfig["type"]
+  if syncType != nil && newConfig[syncType.(string)] != nil {
+    syncConfig := newConfig[syncType.(string)].(map[string]interface{})
+    db.SetCurrentDatabaseConfig(syncConfig, true)
+    db.SetLocalDatabaseConfig();
+    db.PushNetworkDatabaseConfig("node");
+    db.PushNetworkDatabase("node");
+    return true, nil
+  }
+  return false, nil
 }
 
 func (db *ProximaDatabase) SetCurrentDatabaseConfig(newConfig map[string]interface{}, includeTables bool) (bool, error) {
+  //fmt.Println(newConfig)
   db.name = newConfig["name"].(string)
   db.id = newConfig["id"].(string)
   db.version = newConfig["version"].(string)
-  db.sleep, _ = time.ParseDuration(newConfig["sleep"].(string))
-  db.compression, _ = time.ParseDuration(newConfig["compression"].(string))
-  db.batching, _ = time.ParseDuration(newConfig["batching"].(string))
+  intervalConfig := newConfig["config"].(map[string]interface{})
+  //check config
+  sleep := intervalConfig["sleep"].(string)
+  compression := intervalConfig["compression"].(string)
+  batching := intervalConfig["batching"].(string)
+  db.sleep, _ = time.ParseDuration(sleep)
+  db.compression, _ = time.ParseDuration(compression)
+  db.batching, _ = time.ParseDuration(batching)
 
   if includeTables {
   newTables := newConfig["tables"].([]interface{})
   newTablesMap := make(map[string]string)
    for _, t := range newTables {
      tableConfig := t.(map[string]interface{})
+     if tableConfig["name"] == nil {
+       continue
+     }
      name := tableConfig["name"].(string)
      newTablesMap[name] = name
       go db.LoadTable("", tableConfig)
@@ -219,19 +244,22 @@ func (db *ProximaDatabase) SetCurrentDatabaseConfig(newConfig map[string]interfa
 }
 
 func (db *ProximaDatabase) GetCurrentDatabaseConfig() (map[string]interface{}, error) {
-  var dbConfig map[string]interface{}
+  var dbConfig map[string]interface{} = make(map[string]interface{})
   tables :=  make([]interface{}, 0)
   dbConfig["name"] = db.name
   dbConfig["id"] = db.id
-  dbConfig["sleepInterval"] = db.sleep.String()
-  dbConfig["compressionInterval"] = db.compression.String()
-  dbConfig["batchingInterval"] = db.batching.String()
+  dbConfig["version"] = db.version
+  intervalConfig := make(map[string]interface{})
+  intervalConfig["sleep"] = db.sleep.String()
+  intervalConfig["compression"] = db.compression.String()
+  intervalConfig["batching"] = db.batching.String()
+  dbConfig["config"] = intervalConfig
       for _, table := range db.tables {
           c, err := table.GetCurrentTableConfig();
           if err != nil {
-            return nil, err
+            tables = append(tables, c)
           }
-          tables = append(tables, c)
+
   }
   dbConfig["tables"] = tables
   return dbConfig, nil

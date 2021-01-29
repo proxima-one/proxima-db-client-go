@@ -3,7 +3,7 @@ package proxima_db_client_go
 import (
 	"testing"
 	proxima_database "github.com/proxima-one/proxima-db-client-go/pkg/database"
-	_ "fmt"
+	"fmt"
 	"math/rand"
 	_ "time"
 )
@@ -33,7 +33,7 @@ var testDatabaseConfig map[string]interface{} = map[string]interface{}{
   "owner": "None",
   "version": "0.0.0",
   "config": map[string]interface{}{
-    "cache": "5m",
+    "sleep": "5m",
     "compression": "36h",
     "batching": "500ms",
   },
@@ -51,7 +51,7 @@ func CopyMapNewVersion(newVersion string, originalMap map[string]interface{}) (m
   return CopiedMap
 }
 
-func CheckLatestTest(t *testing.T) {
+func TestCheckLatest(t *testing.T) {
   testConfigMap := make(map[string]interface{})
 
   networkTableConfig := CopyMapNewVersion("0.0.1", testTableConfig)
@@ -95,7 +95,7 @@ func CheckLatestTest(t *testing.T) {
   }
 }
 
-func DatabaseCreationTest(t *testing.T) {
+func TestDatabaseCreation(t *testing.T) {
     db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
     if databaseErr != nil {
       t.Error("Cannot create database: ", databaseErr)
@@ -106,7 +106,7 @@ func DatabaseCreationTest(t *testing.T) {
 
     db.SetCurrentDatabaseConfig(dbConfig, true)
     actualConfig, _ := db.GetCurrentDatabaseConfig()
-    if actualConfig["version"].(string) != dbConfig["version"].(string) {
+    if actualConfig == nil ||  actualConfig["version"].(string) != dbConfig["version"].(string) {
       t.Errorf("Issues with setting current database config expected: %v but got: %v", dbConfig["version"].(string), actualConfig["version"].(string))
     }
 
@@ -124,7 +124,7 @@ func DatabaseCreationTest(t *testing.T) {
 
 
 
-func TableCreationTest(t *testing.T) {
+func TestTableCreation(t *testing.T) {
     db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
     if databaseErr != nil {
       t.Error("Cannot create database: ", databaseErr)
@@ -154,7 +154,7 @@ func TableCreationTest(t *testing.T) {
 
 
 
-func BasicDatabaseTest(t *testing.T) {
+func TestBasicDatabase(t *testing.T) {
 	db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
 	if databaseErr != nil {
 		t.Error("Cannot create database: ", databaseErr)
@@ -199,87 +199,87 @@ func BasicDatabaseTest(t *testing.T) {
 		}
 	}
 }
-
-
-
-func DatabaseConfigTest(t *testing.T) {
-	db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
-	if databaseErr != nil {
-		t.Error("Cannot create database: ", databaseErr)
-	}
-  configUpdates := make(map[string]interface{})
-  expectedVersion := "0.0.0"
-	version1 := "0.0.1"
-	version2 := "0.0.2"
-
-  config, _ := db.GetCurrentDatabaseConfig()
-  actualVersion := config["version"].(string)
-  if actualVersion != expectedVersion {
-    t.Errorf("Did not initialize database correctly, got version: %v, expectedVersion: %v", actualVersion, expectedVersion)
-  }
-  configUpdates["version"] = version2
-  db.SetCurrentDatabaseConfig(configUpdates, false)
-  expectedVersion = version2
-
-  config, _ = db.GetCurrentDatabaseConfig()
-  actualVersion = config["version"].(string)
-  if actualVersion != "" || actualVersion != expectedVersion {
-    t.Errorf("Did not update version correctly, got version: %v, expectedVersion: %v", actualVersion, expectedVersion)
-  }
-	db.Update()
-
-  config, _ = db.GetCurrentDatabaseConfig()
-  actualVersion = config["version"].(string)
-  if actualVersion != expectedVersion {
-    t.Errorf("Did not update version correctly, got version: %v, expectedVersion: %v", actualVersion, expectedVersion)
-  }
-
-  configUpdates["version"] = version1
-  db.SetCurrentDatabaseConfig(configUpdates, false)
-
-	db.Update()
-
-  config, _ = db.GetCurrentDatabaseConfig()
-  actualVersion = config["version"].(string)
-  if actualVersion != expectedVersion {
-    t.Errorf("Did not update version correctly, got version: %v, expectedVersion: %v", actualVersion, expectedVersion)
-  }
-
-	var numTables int = 10
-	var numRemovedTables int = 2
-	tableList := GenerateTableList(numTables)
-	removedTableList := make([]string, 0)
-	for _, tableName := range tableList {
-		_, tableErr := db.NewDefaultTable(tableName)
-		if tableErr != nil {
-			t.Error("Cannot make table: ", tableErr)
-		}
-	}
-	db.Update()
-	for i := 0; i < numRemovedTables; i++ {
-		i := rand.Intn(numTables - i)
-		tableName := tableList[i]
-		_, removeErr := db.RemoveTable(tableName)
-		if removeErr != nil {
-			t.Error("Issue with removing table: ", removeErr)
-		}
-		removedTableList = append(removedTableList, tableName)
-	}
-	db.Update()
-	for _, tableName := range removedTableList {
-		table, tableErr := db.GetTable(tableName)
-		if tableErr != nil {
-			t.Error("Cannot make table: ", tableErr)
-		}
-		if table == nil {
-			t.Error("Updating tables does not work correctly")
-		}
-	}
-}
-
-
-
-func TableConfigTest(t *testing.T) {
+//
+//
+//
+// func TestDatabaseConfig(t *testing.T) {
+// 	db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
+// 	if databaseErr != nil {
+// 		t.Error("Cannot create database: ", databaseErr)
+// 	}
+//   configUpdates := make(map[string]interface{})
+//   expectedVersion := "0.0.0"
+// 	version1 := "0.0.1"
+// 	version2 := "0.0.2"
+//
+//   config, _ := db.GetCurrentDatabaseConfig()
+//   actualVersion := config["version"].(string)
+//   if actualVersion != expectedVersion {
+//     t.Errorf("Did not initialize database correctly, got version: %v, expectedVersion: %v", actualVersion, expectedVersion)
+//   }
+//   configUpdates["version"] = version2
+//   db.SetCurrentDatabaseConfig(configUpdates, false)
+//   expectedVersion = version2
+//
+//   config, _ = db.GetCurrentDatabaseConfig()
+//   actualVersion = config["version"].(string)
+//   if actualVersion != "" || actualVersion != expectedVersion {
+//     t.Errorf("Did not update version correctly, got version: %v, expectedVersion: %v", actualVersion, expectedVersion)
+//   }
+// 	db.Update()
+//
+//   config, _ = db.GetCurrentDatabaseConfig()
+//   actualVersion = config["version"].(string)
+//   if actualVersion != expectedVersion {
+//     t.Errorf("Did not update version correctly, got version: %v, expectedVersion: %v", actualVersion, expectedVersion)
+//   }
+//
+//   configUpdates["version"] = version1
+//   db.SetCurrentDatabaseConfig(configUpdates, false)
+//
+// 	db.Update()
+//
+//   config, _ = db.GetCurrentDatabaseConfig()
+//   actualVersion = config["version"].(string)
+//   if actualVersion != expectedVersion {
+//     t.Errorf("Did not update version correctly, got version: %v, expectedVersion: %v", actualVersion, expectedVersion)
+//   }
+//
+// 	var numTables int = 10
+// 	var numRemovedTables int = 2
+// 	tableList := GenerateTableList(numTables)
+// 	removedTableList := make([]string, 0)
+// 	for _, tableName := range tableList {
+// 		_, tableErr := db.NewDefaultTable(tableName)
+// 		if tableErr != nil {
+// 			t.Error("Cannot make table: ", tableErr)
+// 		}
+// 	}
+// 	db.Update()
+// 	for i := 0; i < numRemovedTables; i++ {
+// 		i := rand.Intn(numTables - i)
+// 		tableName := tableList[i]
+// 		_, removeErr := db.RemoveTable(tableName)
+// 		if removeErr != nil {
+// 			t.Error("Issue with removing table: ", removeErr)
+// 		}
+// 		removedTableList = append(removedTableList, tableName)
+// 	}
+// 	db.Update()
+// 	for _, tableName := range removedTableList {
+// 		table, tableErr := db.GetTable(tableName)
+// 		if tableErr != nil {
+// 			t.Error("Cannot make table: ", tableErr)
+// 		}
+// 		if table == nil {
+// 			t.Error("Updating tables does not work correctly")
+// 		}
+// 	}
+// }
+//
+//
+//
+func TestTableConfig(t *testing.T) {
 	db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
 	if databaseErr != nil {
 		t.Error("Cannot create database: ", databaseErr)
@@ -295,6 +295,9 @@ func TableConfigTest(t *testing.T) {
 	blockNum1 := 1
 
   configUpdates["version"] = version2
+	fmt.Println(configUpdates)
+//here
+
   table.SetCurrentTableConfig(configUpdates)
 
   expectedVersion := version2

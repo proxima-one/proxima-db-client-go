@@ -7,7 +7,7 @@ import (
   client "github.com/proxima-one/proxima-db-client-go/pkg/client"
   "context"
   "time"
-  _ "fmt"
+  "fmt"
   "encoding/json"
 )
 
@@ -37,7 +37,7 @@ func (table *ProximaTable) GetLatestTableConfig(methodType string) (map[string]i
   config["node"], _ = table.GetNetworkTableConfig("node")
   config["local"], _ = table.GetLocalTableConfig()
   config["current"], _ = table.GetCurrentTableConfig()
-  return CheckLatest("blockNum", config)
+  return CheckLatest("version", config)
 }
 
 func (table *ProximaTable) GetAllTableConfig(methodType string) (map[string]interface{}, error) {
@@ -59,7 +59,7 @@ func (table *ProximaTable) GetNetworkTableConfig(methodType string) (map[string]
 func (table *ProximaTable) GetLocalTableConfig() (map[string]interface{}, error) {
   resp, err := table.db.Get(table.id, table.name, nil)
   if err != nil || resp == nil {
-    return nil, err
+    return make(map[string]interface{}), err
   } else {
     config := make(map[string]interface{})
     json.Unmarshal(resp.GetValue(), &config)
@@ -135,12 +135,16 @@ func (table *ProximaTable) Load(configType string, config map[string]interface{}
 
 func (table *ProximaTable) Update() (bool, error) {
   newConfig, _ := table.GetLatestTableConfig("local")
-  syncType := newConfig["type"].(string)
-  syncConfig := newConfig[syncType].(map[string]interface{})
+  fmt.Println(newConfig)
+  syncType := newConfig["type"]
+  if syncType != nil && newConfig[syncType.(string)] != nil {
+    syncConfig := newConfig[syncType.(string)].(map[string]interface{})
+    table.SetCurrentTableConfig(syncConfig);
+    table.SetLocalTableConfig();
+    return true, nil
+  }
 
-  table.SetCurrentTableConfig(syncConfig);
-  table.SetLocalTableConfig();
-  return true, nil
+  return false, nil
 }
 
 func (table *ProximaTable) Delete() (bool, error) {
@@ -230,7 +234,7 @@ func (table *ProximaTable) Close() (error) {
 func (table *ProximaTable) Query(queryString string, prove bool) ([]*ProximaDBResult, error) {
   table.isIdle = false
 
-  return table.db.Query(table.id, queryString, map[string]interface{}{"Prove": prove});
+  return table.db.Query(table.id, queryString, map[string]interface{}{"prove": prove});
 }
 
 func (table *ProximaTable) Get(key string,  prove bool) (*ProximaDBResult, error) {
@@ -240,12 +244,12 @@ func (table *ProximaTable) Get(key string,  prove bool) (*ProximaDBResult, error
   if cached, found := table.cache.Get(key); found {
   result = cached
   } else {
-  result, err = table.db.Get(table.id, key, map[string]interface{}{"Prove": true}) //cache result
+  result, err = table.db.Get(table.id, key, map[string]interface{}{"prove": true}) //cache result
   if err != nil {
     return nil, err
   }
   if result != nil {
-    table.cache.Set(key, map[string]interface{}{"Prove": false})
+    table.cache.Set(key, map[string]interface{}{"prove": false})
   }
   }
   return result, nil
