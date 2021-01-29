@@ -7,7 +7,7 @@ import (
   client "github.com/proxima-one/proxima-db-client-go/pkg/client"
   "context"
   "time"
-  "fmt"
+  _ "fmt"
   "encoding/json"
 )
 
@@ -135,7 +135,6 @@ func (table *ProximaTable) Load(configType string, config map[string]interface{}
 
 func (table *ProximaTable) Update() (bool, error) {
   newConfig, _ := table.GetLatestTableConfig("local")
-  fmt.Println(newConfig)
   syncType := newConfig["type"]
   if syncType != nil && newConfig[syncType.(string)] != nil {
     syncConfig := newConfig[syncType.(string)].(map[string]interface{})

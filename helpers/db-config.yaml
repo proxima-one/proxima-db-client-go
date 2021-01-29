@@ -3,7 +3,7 @@
   owner: None
   version: 0.0.0
   config:
-    cache: 5m
+    sleep: 5m
     compression: 36h
     batching: 500ms
   tables:

@@ -3,7 +3,7 @@ package proxima_db_client_go
 import (
 	"testing"
 	proxima_database "github.com/proxima-one/proxima-db-client-go/pkg/database"
-	_ "fmt"
+	"fmt"
 	"math/rand"
 	_ "time"
 )
@@ -147,6 +147,7 @@ func TestTableCreation(t *testing.T) {
 
     table.Load("", tableConfig)
     actualConfig, _ = table.GetCurrentTableConfig()
+		fmt.Println(actualConfig)
     if actualConfig["version"].(string) != tableConfig["version"].(string) {
       t.Errorf("Issues with loading table config. expected: %v but got: %v", tableConfig["version"].(string), actualConfig["version"].(string))
     }
