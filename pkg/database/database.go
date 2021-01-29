@@ -107,7 +107,7 @@ func GetClient(clients []interface{}) (client.ProximaServiceClient, error) {
 }
 
 func LoadProximaDatabase(config map[string]interface{}) (*ProximaDatabase, error) {
-  clients, _:= GetClients(config)
+  clients, _ := GetClients(config)
   client, _ := GetClient(clients)
   name := config["name"].(string)
   id := config["id"].(string)
@@ -124,10 +124,12 @@ func LoadProximaDatabase(config map[string]interface{}) (*ProximaDatabase, error
   version := config["version"].(string)
 
   db, _ := NewProximaDatabase(name, id,  version, client, clients, sleep, compression, batching)
-  var tables []interface{} = config["tables"].([]interface{})
-  for _, tableConfig := range tables {
-        var loadConfig map[string]interface{} = tableConfig.(map[string]interface{})
-        db.LoadTable("local", loadConfig)
+  if config["tables"] != nil {
+    var tables []interface{} = config["tables"].([]interface{})
+    for _, tableConfig := range tables {
+          var loadConfig map[string]interface{} = tableConfig.(map[string]interface{})
+          db.LoadTable("local", loadConfig)
+    }
   }
   db.Update()
   return db, nil

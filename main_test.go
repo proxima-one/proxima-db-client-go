@@ -3,7 +3,7 @@ package proxima_db_client_go
 import (
 	"testing"
 	proxima_database "github.com/proxima-one/proxima-db-client-go/pkg/database"
-	"fmt"
+	_ "fmt"
 	"math/rand"
 	_ "time"
 )
@@ -289,13 +289,12 @@ func TestTableConfig(t *testing.T) {
 	if tableErr != nil {
 		t.Error("Cannot make table: ", tableErr)
 	}
-  configUpdates := make(map[string]interface{})
+  configUpdates := testTableConfig
 	version1 := "0.0.1"
 	version2 := "0.0.2"
 	blockNum1 := 1
 
   configUpdates["version"] = version2
-	fmt.Println(configUpdates)
 //here
 
   table.SetCurrentTableConfig(configUpdates)
@@ -323,7 +322,7 @@ func TestTableConfig(t *testing.T) {
   actualVersion = config["version"].(string)
 
   if actualVersion != expectedVersion {
-    t.Errorf("Did not update version correctly, got version: %v, expectedVersion: %v", actualVersion, expectedVersion)
+    t.Errorf("Did not update the version correctly, got outdated version: %v, expectedVersion: %v", actualVersion, expectedVersion)
   }
 
 	var entries map[string]string = GenerateKeyValuePairs(keySize, valueSize, numEntries)
