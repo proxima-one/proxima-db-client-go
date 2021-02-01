@@ -7,7 +7,8 @@ import (
   client "github.com/proxima-one/proxima-db-client-go/pkg/client"
   "context"
   "time"
-  _ "fmt"
+  "strconv"
+  "fmt"
   "encoding/json"
 )
 
@@ -57,7 +58,9 @@ func (table *ProximaTable) GetNetworkTableConfig(methodType string) (map[string]
 }
 
 func (table *ProximaTable) GetLocalTableConfig() (map[string]interface{}, error) {
-  resp, err := table.db.Get(table.id, table.name, nil)
+  setConfig := make(map[string]interface{});
+  setConfig["prove"] = false
+  resp, err := table.db.Get(table.id, table.name, setConfig)
   if err != nil || resp == nil {
     return make(map[string]interface{}), err
   } else {
@@ -68,8 +71,13 @@ func (table *ProximaTable) GetLocalTableConfig() (map[string]interface{}, error)
 }
 
 func (table *ProximaTable) SetLocalTableConfig() (bool, error) {
-  config, _ := table.GetCurrentTableConfig()
-  _, err := table.db.Set(table.id, table.name, config, nil)
+  config, configErr := table.GetCurrentTableConfig()
+  setConfig := make(map[string]interface{});
+  setConfig["prove"] = false
+  if configErr != nil {
+    return false, configErr
+  }
+  _, err := table.db.Set(table.id, table.name, config, setConfig)
   if err != nil {
     return false, err
   }
@@ -94,12 +102,16 @@ func (table *ProximaTable) SetCurrentTableConfig(config map[string]interface{}) 
   table.name = config["name"].(string)
   table.id = config["id"].(string)
   table.version = config["version"].(string)
-  table.blockNum = config["blockNum"].(int)
+  blockNum := fmt.Sprintf("%v", config["blockNum"])
+  table.blockNum, _ = strconv.Atoi(blockNum)
   table.header  = config["header"].(string)
-  table.sleep, _ = time.ParseDuration(config["sleep"].(string))
-  table.compression, _ = time.ParseDuration(config["compression"].(string))
-  table.batching, _ = time.ParseDuration(config["batching"].(string))
-  cacheExpiration, _ := time.ParseDuration(config["cacheExpiration"].(string))
+  cacheExpiration, err := time.ParseDuration(config["cacheExpiration"].(string))
+  table.sleep, err = time.ParseDuration(config["sleep"].(string))
+  table.compression, err = time.ParseDuration(config["compression"].(string))
+  table.batching, err = time.ParseDuration(config["batching"].(string))
+  if err != nil {
+    return false, err
+  }
   table.cache = NewTableCache(cacheExpiration)
   return true, nil
 }
@@ -136,13 +148,15 @@ func (table *ProximaTable) Load(configType string, config map[string]interface{}
 func (table *ProximaTable) Update() (bool, error) {
   newConfig, _ := table.GetLatestTableConfig("local")
   syncType := newConfig["type"]
-  if syncType != nil && newConfig[syncType.(string)] != nil {
-    syncConfig := newConfig[syncType.(string)].(map[string]interface{})
+  config := newConfig["config"].(map[string]interface{})
+  if syncType != nil && config[syncType.(string)] != nil {
+
+    syncConfig := config[syncType.(string)].(map[string]interface{})
     table.SetCurrentTableConfig(syncConfig);
     table.SetLocalTableConfig();
     return true, nil
   }
-
+  table.SetLocalTableConfig();
   return false, nil
 }
 

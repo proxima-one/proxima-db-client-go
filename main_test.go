@@ -3,7 +3,7 @@ package proxima_db_client_go
 import (
 	"testing"
 	proxima_database "github.com/proxima-one/proxima-db-client-go/pkg/database"
-	"fmt"
+	_ "fmt"
 	"math/rand"
 	_ "time"
 )
@@ -147,7 +147,7 @@ func TestTableCreation(t *testing.T) {
 
     table.Load("", tableConfig)
     actualConfig, _ = table.GetCurrentTableConfig()
-		fmt.Println(actualConfig)
+		//fmt.Println(actualConfig)
     if actualConfig["version"].(string) != tableConfig["version"].(string) {
       t.Errorf("Issues with loading table config. expected: %v but got: %v", tableConfig["version"].(string), actualConfig["version"].(string))
     }
@@ -290,17 +290,13 @@ func TestTableConfig(t *testing.T) {
 	if tableErr != nil {
 		t.Error("Cannot make table: ", tableErr)
 	}
-  configUpdates := testTableConfig
-	version1 := "0.0.1"
-	version2 := "0.0.2"
+  configUpdatev2 := CopyMapNewVersion("0.0.2", testTableConfig)
+	configUpdatev1 := CopyMapNewVersion("0.0.1", testTableConfig)
 	blockNum1 := 1
-
-  configUpdates["version"] = version2
 //here
 
-  table.SetCurrentTableConfig(configUpdates)
-
-  expectedVersion := version2
+  table.SetCurrentTableConfig(configUpdatev2)
+  expectedVersion := "0.0.2"
   config, _ := table.GetCurrentTableConfig()
   actualVersion := config["version"].(string)
   if actualVersion != expectedVersion {
@@ -309,22 +305,10 @@ func TestTableConfig(t *testing.T) {
 
 	table.Update()
 
-  config, _ = table.GetCurrentTableConfig()
-  actualVersion = config["version"].(string)
-  if actualVersion != expectedVersion {
-    t.Errorf("Did not update version correctly, got version: %v, expectedVersion: %v", actualVersion, expectedVersion)
-  }
-  configUpdates["version"] = version1
-  table.SetCurrentTableConfig(configUpdates)
+	//Check local
+	//localConfig, _ := table.GetLocalTableConfig()
+	//currentConfig, _ := table.GetCurrentTableConfig()
 
-	table.Update()
-
-  config, _ = table.GetCurrentTableConfig()
-  actualVersion = config["version"].(string)
-
-  if actualVersion != expectedVersion {
-    t.Errorf("Did not update the version correctly, got outdated version: %v, expectedVersion: %v", actualVersion, expectedVersion)
-  }
 
 	var entries map[string]string = GenerateKeyValuePairs(keySize, valueSize, numEntries)
 	for key, value := range entries {
@@ -334,9 +318,8 @@ func TestTableConfig(t *testing.T) {
 		}
 	}
 
-  configUpdates["version"] = version2
-  configUpdates["blockNum"] = blockNum1
-  table.SetCurrentTableConfig(configUpdates)
+  configUpdatev2["blockNum"] = blockNum1
+  table.SetCurrentTableConfig(configUpdatev2)
   expectedBlockNum := blockNum1
 
 	table.Update()
@@ -356,9 +339,27 @@ func TestTableConfig(t *testing.T) {
 			t.Error("Key is nil should have value: ", value)
 		}
 	}
+
+	config, _ = table.GetCurrentTableConfig()
+	actualVersion = config["version"].(string)
+
+	if actualVersion != expectedVersion {
+		t.Errorf("Did not update version correctly, got version: %v, expectedVersion: %v", actualVersion, expectedVersion)
+	}
+	table.SetCurrentTableConfig(configUpdatev1)
+	config, _ = table.GetCurrentTableConfig()
+	actualVersion = config["version"].(string)
+	if actualVersion != "0.0.1" {
+		t.Errorf("Did not update the version correctly, got outdated version: %v, expectedVersion: %v", actualVersion, "0.0.1")
+	}
+	table.Update()
+
+	newConfig, _ := table.GetCurrentTableConfig()
+	actualVersion = newConfig["version"].(string)
+	if actualVersion != expectedVersion {
+		t.Errorf("Did not update the version correctly, got outdated version: %v, expectedVersion: %v", actualVersion, expectedVersion)
+	}
 }
-
-
 
 func TestGet(t *testing.T) {
 	db, databaseErr := NewDefaultDatabase(databaseName, databaseID)

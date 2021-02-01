@@ -40,7 +40,7 @@ func CheckLatest(checkType string, config map[string]interface{}) (map[string]in
       continue
     }
     var newConfig map[string]interface{} = nConfig.(map[string]interface{})
-    if newConfig[checkType] == nil {
+    if newConfig[checkType] == nil  {
       continue
     }
     newVersion := newConfig[checkType].(string)
@@ -112,7 +112,7 @@ func LoadProximaDatabase(config map[string]interface{}) (*ProximaDatabase, error
   name := config["name"].(string)
   id := config["id"].(string)
 
-  intervalConfig := config["config"].(map[string]interface{})
+  var intervalConfig map[string]interface{} = config["config"].(map[string]interface{})
   //check config
   sleepStr := intervalConfig["sleep"].(string)
   compressionStr := intervalConfig["compression"].(string)
