@@ -15,26 +15,26 @@ func NewTableCache(cacheExpiration time.Duration) (*ProximaTableCache) {
   return &ProximaTableCache{cache: cache.New(cacheExpiration, 5*time.Minute), cacheExpiration: cacheExpiration, capacity: -1}
 }
 
-func (cache *ProximaTableCache) Get(key string) (*ProximaDBResult, bool) {
+func (cache *ProximaTableCache) Get(key interface{}) (*ProximaDBResult, bool) {
 
-  cached, found := cache.cache.Get(key)
+  cached, found := cache.cache.Get(key.(string))
   if found {
-    cache.cache.SetDefault(key, cached);
+    cache.cache.SetDefault(key.(string), cached);
     return cached.(*ProximaDBResult), found
   }
 
   return nil, found
 }
 
-func (cache *ProximaTableCache) Remove(key string) {
-  cache.cache.Delete(key)
+func (cache *ProximaTableCache) Remove(key interface{}) {
+  cache.cache.Delete(key.(string))
   // if cache.cache.ItemCount() >= cache.capacity {
   //   cache.cache.DeleteExpired()
   // }
 }
 
-func (cache *ProximaTableCache) Set(key string, value interface{}) {
+func (cache *ProximaTableCache) Set(key interface{}, value interface{}) {
   // if cache.cache.ItemCount() < cache.capacity {
-    cache.cache.SetDefault(key, value)
+    cache.cache.SetDefault(key.(string), value)
   // }
 }

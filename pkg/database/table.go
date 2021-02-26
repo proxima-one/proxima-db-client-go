@@ -268,7 +268,7 @@ func (table *ProximaTable) Get(key string,  prove bool) (*ProximaDBResult, error
   return result, nil
 }
 //fix
-func (table *ProximaTable) Put(key string, value interface{}, prove bool, args map[string]interface{}) (*ProximaDBResult, error) {
+func (table *ProximaTable) Put(key interface{}, value interface{}, prove bool, args map[string]interface{}) (*ProximaDBResult, error) {
   var result *ProximaDBResult;
   table.isIdle = false
   result, err := table.db.Set(table.id, key, value, map[string]interface{}{"prove": prove});

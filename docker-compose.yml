@@ -1,15 +1,14 @@
-version: "3"
+version: '3'
 services:
-  db_test_node:
-    build:
-      context: .
-      dockerfile: Dockerfile
+  db_client_test:
+    build: '.'
     depends_on:
       - db
     environment:
-        - DB_ADDRESS=db
-        - DB_PORT=50051
+      - DB_ADDRESS=db
+      - DB_PORT=50051
   db:
-    image: chasesmith95/proxima-db-server:latest
+    image: 'chasesmith95/proxima-db-server:latest'
+    restart: unless-stopped
     ports:
-      - "50051:50051"
+      - '50051:50051'
