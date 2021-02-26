@@ -7,7 +7,7 @@ import (
   _ "io/ioutil"
   "time"
   client "github.com/proxima-one/proxima-db-client-go/pkg/client"
-  _ "fmt"
+  "fmt"
   "math/rand"
   "encoding/json"
   "os"
@@ -109,6 +109,7 @@ func GetClient(clients []interface{}) (client.ProximaServiceClient, error) {
 func LoadProximaDatabase(config map[string]interface{}) (*ProximaDatabase, error) {
   clients, _ := GetClients(config)
   client, _ := GetClient(clients)
+  fmt.Println(config)
   name := config["name"].(string)
   id := config["id"].(string)
 

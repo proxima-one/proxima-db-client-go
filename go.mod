@@ -3,6 +3,7 @@ module github.com/proxima-one/proxima-db-client-go
 go 1.13
 
 require (
+	github.com/ghodss/yaml v1.0.0
 	github.com/golang/protobuf v1.4.3
 	github.com/google/go-cmp v0.5.4 // indirect
 	github.com/json-iterator/go v1.1.10

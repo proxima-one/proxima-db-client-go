@@ -3,14 +3,19 @@ package proxima_db_client_go
 import (
 	"testing"
 	proxima_database "github.com/proxima-one/proxima-db-client-go/pkg/database"
-	_ "fmt"
+	"fmt"
 	"math/rand"
 	_ "time"
+	"io/ioutil"
+//yaml "gopkg.in/yaml.v2"
+yaml "github.com/ghodss/yaml"
+json "encoding/json"
 )
 
 var databaseName string = "DefaultDatabaseName"
 var databaseID string = "DefaultDatabaseID"
 var tableName string = "DefaultTableName"
+var databaseConfigFile string = "./helpers/db-config_1.yaml"
 
 var valueSize int = 50
 var numEntries int = 1500
@@ -38,6 +43,21 @@ var testDatabaseConfig map[string]interface{} = map[string]interface{}{
     "batching": "500ms",
   },
   "tables": []interface{}{testTableConfig},
+}
+
+func getDBConfig(configPath string) (map[string]interface{}, error) {
+	data, err := ioutil.ReadFile(configPath)
+	if err != nil {
+		return make(map[string]interface{}), nil
+	}
+	jsonData, _ := yaml.YAMLToJSON([]byte(data))
+	var configMap map[string]interface{}
+	err = json.Unmarshal(jsonData, &configMap)
+	if err != nil {
+		fmt.Printf("err: %v\n", err)
+		return make(map[string]interface{}), nil
+	}
+	return configMap, nil
 }
 
 func CopyMapNewVersion(newVersion string, originalMap map[string]interface{}) (map[string]interface{}) {
@@ -122,6 +142,20 @@ func TestDatabaseCreation(t *testing.T) {
     }
 }
 
+func TestDatabaseLoad(t *testing.T) {
+
+    dbConfig, _ := getDBConfig(databaseConfigFile)
+
+    db, dbErr := proxima_database.LoadProximaDatabase(dbConfig)
+    if dbErr != nil {
+      t.Error("Issues with loading database from config: ", dbErr)
+    }
+    actualConfig, _ := db.GetCurrentDatabaseConfig()
+    if actualConfig["version"].(string) != dbConfig["version"].(string) {
+      t.Errorf("Issues with loading database config. expected: %v but got: %v", dbConfig["version"].(string), actualConfig["version"].(string))
+    }
+}
+
 
 
 func TestTableCreation(t *testing.T) {
@@ -200,6 +234,7 @@ func TestBasicDatabase(t *testing.T) {
 		}
 	}
 }
+
 //
 //
 //
