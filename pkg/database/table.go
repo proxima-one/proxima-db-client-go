@@ -262,7 +262,7 @@ func (table *ProximaTable) Get(key string,  prove bool) (*ProximaDBResult, error
     return nil, err
   }
   if result != nil {
-    table.cache.Set(key, map[string]interface{}{"prove": false})
+    table.cache.Set(key, result)
   }
   }
   return result, nil
@@ -275,6 +275,7 @@ func (table *ProximaTable) Put(key interface{}, value interface{}, prove bool, a
   if err != nil {
     return nil, err
   }
+  //table.cache.Remove(key);
   table.cache.Set(key, result);
   //update blockNum
   if args["blockNum"] != nil {
