@@ -12,7 +12,7 @@ type ProximaTableCache struct {
 }
 
 func NewTableCache(cacheExpiration time.Duration) (*ProximaTableCache) {
-  return &ProximaTableCache{cache: cache.New(cacheExpiration, 5*time.Minute), cacheExpiration: cacheExpiration, capacity: -1}
+  return &ProximaTableCache{cache: cache.New(cacheExpiration, 1*time.Minute), cacheExpiration: cacheExpiration, capacity: -1}
 }
 
 func (cache *ProximaTableCache) Get(key interface{}) (*ProximaDBResult, bool) {

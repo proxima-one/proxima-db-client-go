@@ -255,15 +255,15 @@ func (table *ProximaTable) Get(key string,  prove bool) (*ProximaDBResult, error
   var err error;
   table.isIdle = false
   if cached, found := table.cache.Get(key); found {
-  result = cached
+   result = cached //.(*ProximaDBResult)
   } else {
   result, err = table.db.Get(table.id, key, map[string]interface{}{"prove": true}) //cache result
   if err != nil {
     return nil, err
   }
   if result != nil {
-    table.cache.Set(key, result)
-  }
+      table.cache.Set(key, result)
+    }
   }
   return result, nil
 }
@@ -275,8 +275,8 @@ func (table *ProximaTable) Put(key interface{}, value interface{}, prove bool, a
   if err != nil {
     return nil, err
   }
-  //table.cache.Remove(key);
-  table.cache.Set(key, result);
+  table.cache.Remove(key);
+  //table.cache.Set(key, result);
   //update blockNum
   if args["blockNum"] != nil {
     table.blockNum = args["blockNum"].(int)
