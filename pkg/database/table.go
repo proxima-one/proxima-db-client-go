@@ -275,7 +275,7 @@ func (table *ProximaTable) Put(key interface{}, value interface{}, prove bool, a
   if err != nil {
     return nil, err
   }
-  table.cache.Remove(key);
+  //table.cache.Remove(key);
   //table.cache.Set(key, result);
   //update blockNum
   if args["blockNum"] != nil {
