@@ -254,11 +254,11 @@ func (table *ProximaTable) Get(key string,  prove bool) (*ProximaDBResult, error
   var result *ProximaDBResult;
   var err error;
   table.isIdle = false
-  if cached, found := table.cache.Get(key); found {
+  if cached, found := table.cache.Get(key); found  && cached != nil {
    result = cached //.(*ProximaDBResult)
   } else {
-  result, err = table.db.Get(table.id, key, map[string]interface{}{"prove": true}) //cache result
-  if err != nil {
+  result, err = table.db.Get(table.id, key, map[string]interface{}{"prove": prove}) //cache result
+  if err != nil  {
     return nil, err
   }
   if result != nil {

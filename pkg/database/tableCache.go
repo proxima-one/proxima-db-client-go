@@ -12,18 +12,18 @@ type ProximaTableCache struct {
 }
 
 func NewTableCache(cacheExpiration time.Duration) (*ProximaTableCache) {
-  return &ProximaTableCache{cache: cache.New(cacheExpiration, 1*time.Minute), cacheExpiration: cacheExpiration, capacity: -1}
+  return &ProximaTableCache{cache: cache.New(cacheExpiration, 5*time.Minute), cacheExpiration: cacheExpiration, capacity: -1}
 }
 
 func (cache *ProximaTableCache) Get(key interface{}) (*ProximaDBResult, bool) {
 
   cached, found := cache.cache.Get(key.(string))
-  if found {
+  if found && cached != nil {
     cache.cache.SetDefault(key.(string), cached);
     return cached.(*ProximaDBResult), found
   }
 
-  return nil, found
+  return nil, false
 }
 
 func (cache *ProximaTableCache) Remove(key interface{}) {
