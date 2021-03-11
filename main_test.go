@@ -18,7 +18,7 @@ var tableName string = "DefaultTableName"
 var databaseConfigFile string = "./helpers/db-config_1.yaml"
 
 var valueSize int = 50
-var numEntries int = 1500
+var numEntries int = 10000
 var numBatches int = 5
 var keySize int = 32
 var args map[string]interface{} = map[string]interface{}{"prove": false}
@@ -456,6 +456,7 @@ func TestPut(t *testing.T) {
 		}
 	}
 
+//range queries
 	for key, value := range entries {
 		resp, getErr := table.Get(key, false)
 		if getErr != nil {
@@ -466,6 +467,37 @@ func TestPut(t *testing.T) {
 		}
 	}
 }
+
+
+func TestScan(t *testing.T) {
+	db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
+	if databaseErr != nil {
+		t.Error("Cannot create database: ", databaseErr)
+	}
+
+	table, tableErr := db.NewDefaultTable(tableName)
+	if tableErr != nil {
+		t.Error("Cannot make table: ", tableErr)
+	}
+
+	var entries map[string]string = GenerateKeyValuePairs(keySize, valueSize, numEntries)
+	for key, value := range entries {
+		_, putErr := table.Put(key, value, false, args)
+		if putErr != nil {
+			t.Error("Cannot put key and value: ", putErr)
+		}
+	}
+
+for i := 0; i < 10; i++ {
+	resp, scanErr :=  table.Scan(int(-1), int(10+i), int(100), false, make(map[string]interface{}))
+	//fmt.Println(resp)
+	if scanErr != nil {
+		fmt.Println(resp)
+		t.Error("Issue with scanning table: ", scanErr)
+	}
+}
+}
+
 
 
 // func TestRemove(t *testing.T) {

@@ -6,7 +6,7 @@ config:
   cache: 5m
   compression: 36h
   sleep: 10m
-  batching: 500ms
+  batching: 1m
 tables:
   - name: DPoolLists
     id: DefaultDB-DPoolLists
@@ -14,7 +14,7 @@ tables:
     blockNum: 0
     header: Root
     compression: 36h
-    batching: 500ms
+    batching: 1m
     sleep: 10m
     cacheExpiration: 5m
   - name: DPools

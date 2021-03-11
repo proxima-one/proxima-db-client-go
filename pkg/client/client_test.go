@@ -53,10 +53,10 @@ func TestBasicCRUD(t *testing.T) {
   name := "NewTable"
   keySize := 32
   valSize := 300
-  keyValues := generateKeyValuePairs(1, keySize, valSize)
+  keyValues := generateKeyValuePairs(1000, keySize, valSize)
   prove := false
   proximaClient.Open(context.Background(), &OpenRequest{Name: name})
-
+  
   for key, value := range keyValues {
     _, putErr :=  proximaClient.Put(context.TODO(), &PutRequest{Name:  name, Key: []byte(key),
       Value: []byte(value), Prove: prove})
@@ -71,13 +71,40 @@ func TestBasicCRUD(t *testing.T) {
       t.Error("Issue with putting value into table", getErr)
     }
   }
+
+
+  for i := 0; i < 10; i++ {
+    resp, scanErr :=  proximaClient.Scan(context.TODO(), &ScanRequest{Name: name, First: int32(-1), Last: int32(10+i), Limit: int32(100), Prove: prove})
+    //fmt.Println(resp.GetResponses())
+    if scanErr != nil {
+      fmt.Println(resp.GetResponses())
+      t.Error("Issue with scanning table: ", scanErr)
+    }
+  }
+
+  // for i := 0; i < 10; i++ {
+  //   resp, scanErr :=  proximaClient.Scan(context.TODO(), &ScanRequest{Name: name, First: int32(-1), Last: int32(10+i), Limit: int32(100), Prove: prove})
+  //   //fmt.Println(resp.GetResponses())
+  //   if scanErr != nil {
+  //     t.Error("Issue with scanning table: ", scanErr)
+  //   }
+  // }
+
+
 }
 
 
 
-
+//
 // func TestAdvancedQuery(t *testing.T) {
-//   panic("Not implemented")
+//   proximaClient := Setup()
+//   name := "NewTable"
+//   keySize := 32
+//   valSize := 300
+//   keyValues := generateKeyValuePairs(100, keySize, valSize)
+//   prove := false
+//   proximaClient.Open(context.Background(), &OpenRequest{Name: name})
+//
 // }
 //
 // func TestMultipleTables(t *testing.T) {

@@ -5,7 +5,7 @@
   config:
     sleep: 5m
     compression: 36h
-    batching: 500ms
+    batching: 1m
   tables:
   - name: Applications
     id: Proxima-Applications
@@ -13,7 +13,7 @@
     blockNum: 0
     header: Root
     compression: 36h
-    batching: 500ms
+    batching: 1m
     sleep: 10m
     cacheExpiration: 5m
   - name: Peers
@@ -22,6 +22,6 @@
     blockNum: 0
     header: Root
     compression: 36h
-    batching: 500ms
+    batching: 1m
     sleep: 10m
     cacheExpiration: 5m
