@@ -5,6 +5,7 @@ import (
   "testing"
   grpc "google.golang.org/grpc"
   "math/rand"
+  "fmt"
 )
 
 func randomString(size int) (string) {
@@ -39,12 +40,12 @@ func TestTable(t *testing.T) {
   proximaClient := Setup()
   openResponse, openErr := proximaClient.Open(context.Background(), &OpenRequest{Name: name})
   if openErr != nil || !openResponse.GetConfirmation() {
+    fmt.Println(openErr)
     closeResponse, closeErr := proximaClient.Close(context.TODO(), &CloseRequest{Name: name})
     if closeErr != nil || !closeResponse.GetConfirmation() {
       t.Error("Cannot close table: ", closeErr)
     }
   }
-
 }
 
 func TestBasicCRUD(t *testing.T) {
@@ -52,9 +53,9 @@ func TestBasicCRUD(t *testing.T) {
   name := "NewTable"
   keySize := 32
   valSize := 300
-  keyValues := generateKeyValuePairs(1000, keySize, valSize)
+  keyValues := generateKeyValuePairs(1, keySize, valSize)
   prove := false
-  //_, openErr := proximaClient.Open(context.Background(), &OpenRequest{Name: name})
+  proximaClient.Open(context.Background(), &OpenRequest{Name: name})
 
   for key, value := range keyValues {
     _, putErr :=  proximaClient.Put(context.TODO(), &PutRequest{Name:  name, Key: []byte(key),

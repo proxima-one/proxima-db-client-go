@@ -160,6 +160,37 @@ func (table *ProximaTable) Update() (bool, error) {
   return false, nil
 }
 
+
+
+
+func (table *ProximaTable) Checkout() (bool, error) {
+  table.db.Checkout(table.id)
+  return true, nil
+}
+
+func (table *ProximaTable) Commit() (bool, error) {
+  table.db.Commit(table.id)
+  return true, nil
+}
+
+func (table *ProximaTable) Compact() (bool, error) {
+  table.db.Compact(table.id)
+  return true, nil
+}
+
+func (table *ProximaTable) Stat() (bool, error) {
+  table.db.Stat(table.id)
+  return true, nil
+}
+
+func (table *ProximaTable) Scan(first, last, limit int, prove bool, args map[string]interface{}) (bool, error) {
+  table.db.Scan(table.id, first, last, limit, map[string]interface{}{"prove": prove})
+  return true, nil
+}
+
+
+
+
 func (table *ProximaTable) Delete() (bool, error) {
     table.Close();
     table.db.RemoveTable(table.name);
@@ -188,49 +219,49 @@ func (table *ProximaTable) Open() (error) {
 }
 
 func Compression(table *ProximaTable, interval time.Duration) {
-  // ticker := time.NewTicker(interval)
-  // for ; true; <-ticker.C {
-  //   select {
-  //     case !table.isOpen:
-  //       //ticker stop
-  //       return
-  //     case t := <-ticker.C:
-  //         //compress the database ... table.Compress()
-  //     }
-  // }
-  return
+  ticker := time.NewTicker(interval)
+  for ; true; <-ticker.C {
+    select {
+      case <-ticker.C:
+        table.Compact()
+      default:
+        if !table.isOpen {
+          return
+        } //is not open, must finish commitment ..., getRoot, ..
+  }
+  }
 }
 
 func Batching(table *ProximaTable, interval time.Duration) {
-  // ticker := time.NewTicker(interval)
-  // for ; true; <-ticker.C {
-  //   select {
-  //     case !table.isOpen: //is not open
-  //     //compress
-  //     //ticker stop
-  //               return
-  //     case t := <-ticker.C:
-  //           //compress the transaction CheckoutTransaction with table
-  //           //make a new transaction CheckIn
-  //     }
-  // }
-  return
+  ticker := time.NewTicker(interval)
+  table.Checkout() //checkout ...
+  for ; true; <-ticker.C {
+    select {
+      case <-ticker.C:
+          table.Commit()
+          table.Checkout()
+      default:
+        if !table.isOpen {
+          return
+        } //is not open, must finish commitment ..., getRoot, ..
+  }
+}
 }
 
 func SleepSchedule(table *ProximaTable, interval time.Duration) {
-  // ticker := time.NewTicker(interval)
-  // for ; true; <-ticker.C {
-  //   if table.isIdle {
-  //         //ticker stop
-  //         ticker.Stop()
-  //         table.Close()
-  //         return
-  //   }
-  //   if t := <-ticker.C {
-  //         table.isIdle = true;
-  //   }
-  // }
-  return
+  ticker := time.NewTicker(interval)
+  for ; true; <-ticker.C {
+    select {
+  case <-ticker.C:
+      table.isIdle = true;
+  default:
+    if table.isIdle {
+      ticker.Stop()
+      table.Close()
+      return
+  } //is not open, must finish commitment ..., getRoot, ..
+}
+  }
 }
 
 func (table *ProximaTable) Close() (error) {
@@ -244,11 +275,13 @@ func (table *ProximaTable) Close() (error) {
   return nil
 }
 
-func (table *ProximaTable) Query(queryString string, prove bool) ([]*ProximaDBResult, error) {
-  table.isIdle = false
+// func (table *ProximaTable) Query(queryString string, prove bool) ([]*ProximaDBResult, error) {
+//   table.isIdle = false
+//
+//   return table.db.Query(table.id, queryString, map[string]interface{}{"prove": prove});
+// }
 
-  return table.db.Query(table.id, queryString, map[string]interface{}{"prove": prove});
-}
+
 
 func (table *ProximaTable) Get(key string,  prove bool) (*ProximaDBResult, error) {
   var result *ProximaDBResult;
@@ -283,6 +316,19 @@ func (table *ProximaTable) Put(key interface{}, value interface{}, prove bool, a
   }
   return result, err;
 }
+
+// func (table *ProximaTable) Query(tableName string, data string, args map[string]interface{}) ([]*ProximaDBResult, error) {
+//   prove := (args["prove"] != nil) && args["prove"].(bool)
+//   responses , err := table.db.Query(table.id)
+//   if err != nil {
+//     return nil, err
+//   }
+//   proximaResults := make([]*ProximaDBResult, 0)
+//   for _, response :=  range responses.GetResponses() {
+//     proximaResults = append(proximaResults, NewProximaDBResult(response.GetValue(), response.GetProof(), response.GetRoot()))
+//   }
+//   return proximaResults, nil
+// }
 
 func (table *ProximaTable) Remove(key string, prove bool) (*ProximaDBResult, error) {
   table.isIdle = false

@@ -102,6 +102,55 @@ func (db *ProximaDatabase) Set(table string, k interface{}, v interface{}, args 
   return NewProximaDBResult([]byte{}, resp.GetProof(), resp.GetRoot()), nil
 }
 
+func (db *ProximaDatabase) Scan(table string, first int, last int, limit int, args map[string]interface{}) ([]*ProximaDBResult, error) {
+  prove := (args["prove"] != nil) && args["prove"].(bool)
+  responses , err := db.client.Scan(context.TODO(), &client.ScanRequest{Name: table, First: int32(first), Last: int32(last), Limit: int32(limit), Prove: prove})
+  if err != nil {
+    return nil, err
+  }
+  proximaResults := make([]*ProximaDBResult, 0)
+  for _, response :=  range responses.GetResponses() {
+    proximaResults = append(proximaResults, NewProximaDBResult(response.GetValue(), response.GetProof(), response.GetRoot()))
+  }
+  return proximaResults, nil
+}
+//
+func (db *ProximaDatabase) Stat(table string) (*ProximaDBResult, error) {
+  resp, err := db.client.Stat(context.TODO(), &client.StatRequest{Name: table})
+  if err != nil {
+    return nil, err
+  }
+  return NewProximaDBResult(resp.Stats, resp.Proof, resp.Root), nil
+}
+//
+func (db *ProximaDatabase) Compact(table string) (bool, error) {
+  resp, err := db.client.Compact(context.TODO(), &client.CompactRequest{Name: table})
+  if err != nil {
+    return false, err
+  }
+  return resp.Confirmation, nil
+}
+
+func (db *ProximaDatabase) Checkout(table string) (bool, error) {
+  resp, err := db.client.Checkout(context.TODO(), &client.CheckoutRequest{Name: table})
+  if err != nil {
+    return false, err
+  }
+  return resp.Confirmation, nil
+}
+//
+func (db *ProximaDatabase) Commit(table string) (bool, error) {
+  resp, err := db.client.Commit(context.TODO(), &client.CommitRequest{Name: table})
+  if err != nil {
+    return false, err
+  }
+  return resp.Confirmation, nil
+}
+
+
+
+
+
 func (db *ProximaDatabase) Remove(table string, k interface{}, args map[string]interface{}) (*ProximaDBResult, error) {
   prove := (args["prove"] != nil) && args["prove"].(bool)
   key := ProcessKey(k)

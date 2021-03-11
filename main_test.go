@@ -115,6 +115,19 @@ func TestCheckLatest(t *testing.T) {
   }
 }
 
+//Test Scan
+
+//Test Put (how fast with checkout/commit )
+
+//Test Compact
+
+//Test Search
+
+//Test Stat
+
+
+
+
 func TestDatabaseCreation(t *testing.T) {
     db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
     if databaseErr != nil {
@@ -187,6 +200,8 @@ func TestTableCreation(t *testing.T) {
     }
 }
 
+//test scan, and query
+
 
 
 func TestBasicDatabase(t *testing.T) {
@@ -234,6 +249,10 @@ func TestBasicDatabase(t *testing.T) {
 		}
 	}
 }
+
+
+
+
 
 //
 //
