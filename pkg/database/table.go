@@ -183,12 +183,9 @@ func (table *ProximaTable) Stat() (bool, error) {
   return true, nil
 }
 
-func (table *ProximaTable) Scan(first, last, limit int, prove bool, args map[string]interface{}) (bool, error) {
-  table.db.Scan(table.id, first, last, limit, map[string]interface{}{"prove": prove})
-  return true, nil
+func (table *ProximaTable) Scan(first, last, limit int, prove bool, args map[string]interface{}) ([]*ProximaDBResult, error) {
+  return table.db.Scan(table.id, first, last, limit, map[string]interface{}{"prove": prove})
 }
-
-
 
 
 func (table *ProximaTable) Delete() (bool, error) {
