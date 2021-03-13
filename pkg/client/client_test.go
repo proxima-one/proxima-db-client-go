@@ -56,7 +56,7 @@ func TestBasicCRUD(t *testing.T) {
   keyValues := generateKeyValuePairs(1000, keySize, valSize)
   prove := false
   proximaClient.Open(context.Background(), &OpenRequest{Name: name})
-  
+
   for key, value := range keyValues {
     _, putErr :=  proximaClient.Put(context.TODO(), &PutRequest{Name:  name, Key: []byte(key),
       Value: []byte(value), Prove: prove})

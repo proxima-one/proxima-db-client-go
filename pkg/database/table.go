@@ -272,11 +272,11 @@ func (table *ProximaTable) Close() (error) {
   return nil
 }
 
-// func (table *ProximaTable) Query(queryString string, prove bool) ([]*ProximaDBResult, error) {
-//   table.isIdle = false
-//
-//   return table.db.Query(table.id, queryString, map[string]interface{}{"prove": prove});
-// }
+func (table *ProximaTable) Query(queryString string, prove bool) ([]*ProximaDBResult, error) {
+  table.isIdle = false
+
+  return table.db.Query(table.id, queryString, map[string]interface{}{"prove": prove});
+}
 
 
 

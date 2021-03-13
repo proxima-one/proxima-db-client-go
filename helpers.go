@@ -37,7 +37,7 @@ func GenerateTableList(num int) ([]string){
   return tableList
 }
 
-func GenerateKeyValuePairs(num int, keySize int, valSize int) (map[string]string){
+func GenerateKeyValuePairs(keySize int, valSize int, num int) (map[string]string){
   mapping := make(map[string]string)
   for i := 0; i < num; i++ {
     key := RandomString(keySize)

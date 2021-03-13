@@ -5,7 +5,7 @@ import (
 	proxima_database "github.com/proxima-one/proxima-db-client-go/pkg/database"
 	"fmt"
 	"math/rand"
-	_ "time"
+	"time"
 	"io/ioutil"
 //yaml "gopkg.in/yaml.v2"
 yaml "github.com/ghodss/yaml"
@@ -17,8 +17,8 @@ var databaseID string = "DefaultDatabaseID"
 var tableName string = "DefaultTableName"
 var databaseConfigFile string = "./helpers/db-config_1.yaml"
 
-var valueSize int = 50
-var numEntries int = 10000
+var valueSize int = 300
+var numEntries int = 100
 var numBatches int = 5
 var keySize int = 32
 var args map[string]interface{} = map[string]interface{}{"prove": false}
@@ -447,14 +447,25 @@ func TestPut(t *testing.T) {
 	if tableErr != nil {
 		t.Error("Cannot make table: ", tableErr)
 	}
-
-	var entries map[string]string = GenerateKeyValuePairs(keySize, valueSize, numEntries)
+	err:= table.Open()
+	if err != nil {
+		t.Error("Cannot open table: ", err)
+	}
+	num := 20000
+	var entries map[string]string = GenerateKeyValuePairs(keySize, valueSize, num)
+	start := time.Now()
 	for key, value := range entries {
-		_, putErr := table.Put(key, value, false, args)
+		resp, putErr := table.Put(key, value, false, args)
+
 		if putErr != nil {
+			fmt.Println(resp)
 			t.Error("Cannot put key and value: ", putErr)
 		}
 	}
+	endT := time.Now()
+	elapsed := endT.Sub(start)
+	fmt.Println(elapsed)
+	fmt.Println(num)
 
 //range queries
 	for key, value := range entries {
