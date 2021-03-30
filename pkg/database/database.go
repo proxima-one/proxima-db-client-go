@@ -7,8 +7,9 @@ import (
   _ "io/ioutil"
   "time"
   client "github.com/proxima-one/proxima-db-client-go/pkg/client"
-  _ "fmt"
+  "fmt"
   "math/rand"
+  "errors"
   "encoding/json"
   "os"
 )
@@ -166,17 +167,36 @@ func (db *ProximaDatabase) GetNetworkDatabaseConfig(method string) (map[string]i
 
 func (db *ProximaDatabase) GetAllDatabaseConfig(methodType string) (map[string]interface{}, error) {
   config := make(map[string]interface{})
-  config["local"], _ = db.GetLocalDatabaseConfig()
-  config["current"], _ = db.GetCurrentDatabaseConfig()
-  config["node"], _ = db.GetNetworkDatabaseConfig("node")
-  if methodType == "global" {
-    config["network"], _ = db.GetNetworkDatabaseConfig("global")
+  var err error;
+  config["local"], err = db.GetLocalDatabaseConfig()
+  if err != nil {
+    return nil, err
   }
+
+  config["current"], err = db.GetCurrentDatabaseConfig()
+  if err != nil {
+    return nil, err
+  }
+  config["node"], err = db.GetNetworkDatabaseConfig("node")
+  if err != nil {
+    return nil, err
+  }
+  if methodType == "global" {
+    config["network"], err = db.GetNetworkDatabaseConfig("global")
+    if err != nil {
+      return nil, err
+    }
+  }
+  //
+
   return config, nil
 }
 
 func (db *ProximaDatabase) GetLatestDatabaseConfig(methodType string) (map[string]interface{}, error) {
-  config, _ := db.GetAllDatabaseConfig(methodType)
+  config, err := db.GetAllDatabaseConfig(methodType)
+  if err != nil {
+    return nil, err
+  }
   return CheckLatest("version", config)
 }
 
@@ -196,21 +216,41 @@ func (db *ProximaDatabase) Sync() (bool, error) {
 }
 
 func (db *ProximaDatabase) Update() (bool, error) {
-  newConfig, _ := db.GetLatestDatabaseConfig("node")
+  newConfig, err := db.GetLatestDatabaseConfig("node")
+  if err != nil {
+    return false, err
+  }
+  fmt.Println(newConfig)
   syncType := newConfig["type"]
-  if syncType != nil && newConfig[syncType.(string)] != nil {
-    syncConfig := newConfig[syncType.(string)].(map[string]interface{})
-    db.SetCurrentDatabaseConfig(syncConfig, true)
-    db.SetLocalDatabaseConfig();
-    db.PushNetworkDatabaseConfig("node");
-    db.PushNetworkDatabase("node");
+  var config map[string]interface{} = newConfig["config"].(map[string]interface{})
+  if syncType != nil && config[syncType.(string)] != nil {
+    syncConfig := config[syncType.(string)].(map[string]interface{})
+    if len(syncConfig) == 0 {
+        return false, errors.New(fmt.Sprintf("There is nothing to sync at %s, only have %v", syncType, syncConfig))
+    }
+    _, err = db.SetCurrentDatabaseConfig(syncConfig, true)
+    if err != nil {
+      return false, err
+    }
+    _, err = db.SetLocalDatabaseConfig();
+    if err != nil {
+      return false, err
+    }
+    _, err = db.PushNetworkDatabaseConfig("node");
+    if err != nil {
+      return false, err
+    }
+    _, err = db.PushNetworkDatabase("node");
+    if err != nil {
+      return false, err
+    }
     return true, nil
   }
   return false, nil
 }
 
 func (db *ProximaDatabase) SetCurrentDatabaseConfig(newConfig map[string]interface{}, includeTables bool) (bool, error) {
-  //fmt.Println(newConfig)
+  fmt.Println(newConfig)
   db.name = newConfig["name"].(string)
   db.id = newConfig["id"].(string)
   db.version = newConfig["version"].(string)
@@ -233,13 +273,13 @@ func (db *ProximaDatabase) SetCurrentDatabaseConfig(newConfig map[string]interfa
      }
      name := tableConfig["name"].(string)
      newTablesMap[name] = name
-      go db.LoadTable("", tableConfig)
+      db.LoadTable("", tableConfig)
     }
 
     for _, table := range db.tables {
       name := table.name
       if newTablesMap[name] == name {
-        go db.RemoveTable(name)
+        db.RemoveTable(name)
       }
     }
   }
@@ -260,9 +300,9 @@ func (db *ProximaDatabase) GetCurrentDatabaseConfig() (map[string]interface{}, e
       for _, table := range db.tables {
           c, err := table.GetCurrentTableConfig();
           if err != nil {
-            tables = append(tables, c)
+            return nil, err
           }
-
+          tables = append(tables, c)
   }
   dbConfig["tables"] = tables
   return dbConfig, nil
@@ -274,13 +314,19 @@ func (db *ProximaDatabase) GetLocalDatabaseConfig() (map[string]interface{}, err
   if err != nil || resp == nil  {
     return config, err
   }
-  json.Unmarshal(resp.GetValue(), &config)
+  err  = json.Unmarshal(resp.GetValue(), &config)
+  if err != nil  {
+    return config, err
+  }
   return config, nil
 }
 
 func (db *ProximaDatabase) SetLocalDatabaseConfig() (map[string]interface{}, error) {
-    currentConfig, _ := db.GetCurrentDatabaseConfig()
-    _, err := db.Set(db.id, "config", currentConfig, nil)
+    currentConfig, err := db.GetCurrentDatabaseConfig()
+    if err != nil {
+      return nil, err
+    }
+    _, err = db.Set(db.id, "config", currentConfig, nil)
     if err != nil {
       return nil, err
     } else {
@@ -292,7 +338,7 @@ func (db *ProximaDatabase) LoadTable(loadType string, tableConfig map[string]int
   tableName := tableConfig["name"].(string)
   table, err := db.GetTable(tableName)
   if err != nil {
-    return nil, nil
+    return nil, err
   }
   if table == nil {
     table, err = db.NewDefaultTable(tableName)

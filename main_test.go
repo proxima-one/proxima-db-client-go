@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"time"
 	"io/ioutil"
+	//"github.com/pkg/errors"
 //yaml "gopkg.in/yaml.v2"
 yaml "github.com/ghodss/yaml"
 json "encoding/json"
@@ -54,7 +55,7 @@ func getDBConfig(configPath string) (map[string]interface{}, error) {
 	var configMap map[string]interface{}
 	err = json.Unmarshal(jsonData, &configMap)
 	if err != nil {
-		fmt.Printf("err: %v\n", err)
+		fmt.Printf("err: %+v\n", err)
 		return make(map[string]interface{}), nil
 	}
 	return configMap, nil
@@ -339,11 +340,12 @@ func TestTableConfig(t *testing.T) {
 	if databaseErr != nil {
 		t.Error("Cannot create database: ", databaseErr)
 	}
-
+	var updated bool;
 	table, tableErr := db.NewDefaultTable(tableName)
 	if tableErr != nil {
 		t.Error("Cannot make table: ", tableErr)
 	}
+	table.Open()
   configUpdatev2 := CopyMapNewVersion("0.0.2", testTableConfig)
 	configUpdatev1 := CopyMapNewVersion("0.0.1", testTableConfig)
 	blockNum1 := 1
@@ -351,7 +353,10 @@ func TestTableConfig(t *testing.T) {
 
   table.SetCurrentTableConfig(configUpdatev2)
   expectedVersion := "0.0.2"
-  config, _ := table.GetCurrentTableConfig()
+  config, err := table.GetCurrentTableConfig()
+	if err != nil {
+		 t.Errorf("Error with getting current table config: %v", err)
+	}
   actualVersion := config["version"].(string)
   if actualVersion != expectedVersion {
     t.Errorf("Did not update version correctly, got version: %v, expectedVersion: %v", actualVersion, expectedVersion)
@@ -376,10 +381,20 @@ func TestTableConfig(t *testing.T) {
   table.SetCurrentTableConfig(configUpdatev2)
   expectedBlockNum := blockNum1
 
-	table.Update()
+	updated, err = table.Update()
+	if err != nil || updated  == false {
+		 t.Errorf("Error with updating table config: %v", err)
+	}
 
-  config, _ = table.GetCurrentTableConfig()
+  config, err = table.GetCurrentTableConfig()
+
+	if err != nil {
+		 t.Errorf("Error with getting current table config: %v", err)
+	}
+
+
   actualBlockNum := config["blockNum"].(int)
+	fmt.Println(config)
   if actualBlockNum != expectedBlockNum {
     t.Errorf("Did not update blockNum correctly, got blockNum: %v, expected blockNum: %v", actualBlockNum, expectedBlockNum)
   }
@@ -406,13 +421,24 @@ func TestTableConfig(t *testing.T) {
 	if actualVersion != "0.0.1" {
 		t.Errorf("Did not update the version correctly, got outdated version: %v, expectedVersion: %v", actualVersion, "0.0.1")
 	}
-	table.Update()
+
+	updated, err = table.Update()
+	if err != nil || updated  == false {
+		 t.Errorf("Error with updating table config: %v", err)
+	}
 
 	newConfig, _ := table.GetCurrentTableConfig()
 	actualVersion = newConfig["version"].(string)
 	if actualVersion != expectedVersion {
 		t.Errorf("Did not update the version correctly, got outdated version: %v, expectedVersion: %v", actualVersion, expectedVersion)
 	}
+
+
+		updated, err = db.Update()
+		if err != nil  || updated  == false {
+
+			 t.Errorf("Error with updating db config: %+v", err)
+		}
 }
 
 func TestGet(t *testing.T) {
@@ -467,6 +493,7 @@ func TestPut(t *testing.T) {
 	fmt.Println(elapsed)
 	fmt.Println(num)
 
+	start = time.Now()
 //range queries
 	for key, value := range entries {
 		resp, getErr := table.Get(key, false)
@@ -477,6 +504,10 @@ func TestPut(t *testing.T) {
 			t.Error("Value is 0 should be: ", value)
 		}
 	}
+	endT = time.Now()
+	elapsed = endT.Sub(start)
+	fmt.Println(elapsed)
+	fmt.Println(num)
 }
 
 
@@ -499,12 +530,52 @@ func TestScan(t *testing.T) {
 		}
 	}
 
-for i := 0; i < 10; i++ {
+var num int = 10
+
+start := time.Now()
+for i := 0; i < num; i++ {
 	resp, scanErr :=  table.Scan(int(-1), int(10+i), int(100), false, make(map[string]interface{}))
 	//fmt.Println(resp)
 	if scanErr != nil {
 		fmt.Println(resp)
 		t.Error("Issue with scanning table: ", scanErr)
+	}
+}
+endT := time.Now()
+elapsed := endT.Sub(start)
+fmt.Println(elapsed)
+fmt.Println(num)
+}
+
+func TestQuery(t *testing.T) {
+	db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
+	if databaseErr != nil {
+		t.Error("Cannot create database: ", databaseErr)
+	}
+	var tableName string = "DPools"
+	table, tableErr := db.NewDefaultTable(tableName)
+	if tableErr != nil {
+		t.Error("Cannot make table: ", tableErr)
+	}
+
+	//generate random structures
+	var entries map[string]string = GenerateKeyValuePairs(keySize, valueSize, numEntries)
+
+	//entity in entities
+	for key, value := range entries {
+		_, putErr := table.Put(key, value, false, args)
+		if putErr != nil {
+			t.Error("Cannot put key and value: ", putErr)
+		}
+	}
+var queries []string = GenerateRandomSearchQueryText()
+//generate random queries
+for i := 0; i < 10; i++ {
+	resp, queryErr :=  table.Query(queries[i], false)
+	fmt.Println(resp)
+	if queryErr != nil {
+		fmt.Println(resp)
+		t.Error("Issue with scanning table: ", queryErr)
 	}
 }
 }
