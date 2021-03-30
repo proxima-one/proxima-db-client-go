@@ -280,5 +280,4 @@ func FilterExpression(result interface{}, exp string, expected interface{}) bool
 	default:
 		return false
 	}
-	return false
 }
