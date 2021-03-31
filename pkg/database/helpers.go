@@ -1,34 +1,33 @@
 package database
 
 import (
-  "fmt"
-  //"encoding/json"
-  //sclient "github.com/proxima-one/proxima-db-client-go/pkg/client"
-  json "github.com/json-iterator/go"
-  )
+	"fmt"
+	//"encoding/json"
+	//sclient "github.com/proxima-one/proxima-db-client-go/pkg/client"
+	json "github.com/json-iterator/go"
+)
 
-func padOrTrimBytes(bb []byte, size int) ([]byte) {
-    l := len(bb)
-    if l == size {
-        return bb
-    }
-    if l > size {
-        return bb[l-size:]
-    }
-    tmp := make([]byte, size)
-    copy(tmp[size-l:], bb)
-    return tmp
+func padOrTrimBytes(bb []byte, size int) []byte {
+	l := len(bb)
+	if l == size {
+		return bb
+	}
+	if l > size {
+		return bb[l-size:]
+	}
+	tmp := make([]byte, size)
+	copy(tmp[size-l:], bb)
+	return tmp
 }
 
-func ProcessKey(key interface{}) ([]byte) {
-  byteKey := []byte(fmt.Sprintf("%v", key.(interface{})))
-  return padOrTrimBytes(byteKey, 32)
+func ProcessKey(key interface{}) []byte {
+	byteKey := []byte(fmt.Sprintf("%v", key.(interface{})))
+	return padOrTrimBytes(byteKey, 32)
 }
 
-
-func ProcessValue(value interface{}) ([]byte) {
-  byteValue, _ := json.Marshal(value)
-  return []byte(byteValue)
+func ProcessValue(value interface{}) []byte {
+	byteValue, _ := json.Marshal(value)
+	return []byte(byteValue)
 }
 
 // func (db *ProximaDatabase) Open(tableList []string) (bool, error) {

@@ -1,16 +1,19 @@
 package proxima_db_client_go
 
 import (
-	"testing"
-	proxima_database "github.com/proxima-one/proxima-db-client-go/pkg/database"
 	"fmt"
-	"math/rand"
-	"time"
 	"io/ioutil"
+	"math/rand"
+	"testing"
+	"time"
+
+	proxima_database "github.com/proxima-one/proxima-db-client-go/pkg/database"
+
 	//"github.com/pkg/errors"
-//yaml "gopkg.in/yaml.v2"
-yaml "github.com/ghodss/yaml"
-json "encoding/json"
+	//yaml "gopkg.in/yaml.v2"
+	json "encoding/json"
+
+	yaml "github.com/ghodss/yaml"
 )
 
 var databaseName string = "DefaultDatabaseName"
@@ -24,26 +27,26 @@ var numBatches int = 5
 var keySize int = 32
 var args map[string]interface{} = map[string]interface{}{"prove": false}
 var testTableConfig map[string]interface{} = map[string]interface{}{"name": "DPoolLists",
-		  "id": "DefaultDB-DPoolLists",
-		  "version": "0.0.0",
-		  "blockNum": 0,
-		  "header": "Root",
-		  "compression": "36h",
-		  "batching": "500ms",
-		  "sleep": "10m",
-		  "cacheExpiration": "5m"}
+	"id":              "DefaultDB-DPoolLists",
+	"version":         "0.0.0",
+	"blockNum":        0,
+	"header":          "Root",
+	"compression":     "36h",
+	"batching":        "500ms",
+	"sleep":           "10m",
+	"cacheExpiration": "5m"}
 
 var testDatabaseConfig map[string]interface{} = map[string]interface{}{
-  "name": "DefaultDB",
-  "id": "DefaultID",
-  "owner": "None",
-  "version": "0.0.0",
-  "config": map[string]interface{}{
-    "sleep": "5m",
-    "compression": "36h",
-    "batching": "500ms",
-  },
-  "tables": []interface{}{testTableConfig},
+	"name":    "DefaultDB",
+	"id":      "DefaultID",
+	"owner":   "None",
+	"version": "0.0.0",
+	"config": map[string]interface{}{
+		"sleep":       "5m",
+		"compression": "36h",
+		"batching":    "500ms",
+	},
+	"tables": []interface{}{testTableConfig},
 }
 
 func getDBConfig(configPath string) (map[string]interface{}, error) {
@@ -61,59 +64,59 @@ func getDBConfig(configPath string) (map[string]interface{}, error) {
 	return configMap, nil
 }
 
-func CopyMapNewVersion(newVersion string, originalMap map[string]interface{}) (map[string]interface{}) {
-  CopiedMap:= make(map[string]interface{})
+func CopyMapNewVersion(newVersion string, originalMap map[string]interface{}) map[string]interface{} {
+	CopiedMap := make(map[string]interface{})
 
-  /* Copy Content from Map1 to Map2*/
-  for index, element  := range originalMap{
-     CopiedMap[index] = element
-  }
-  CopiedMap["version"] = newVersion
-  return CopiedMap
+	/* Copy Content from Map1 to Map2*/
+	for index, element := range originalMap {
+		CopiedMap[index] = element
+	}
+	CopiedMap["version"] = newVersion
+	return CopiedMap
 }
 
 func TestCheckLatest(t *testing.T) {
-  testConfigMap := make(map[string]interface{})
+	testConfigMap := make(map[string]interface{})
 
-  networkTableConfig := CopyMapNewVersion("0.0.1", testTableConfig)
-  nodeTableConfig := CopyMapNewVersion("0.0.5", testTableConfig)
-  localTableConfig := CopyMapNewVersion("0.0.2", testTableConfig)
-  currentTableConfig := CopyMapNewVersion("0.0.1", testTableConfig)
+	networkTableConfig := CopyMapNewVersion("0.0.1", testTableConfig)
+	nodeTableConfig := CopyMapNewVersion("0.0.5", testTableConfig)
+	localTableConfig := CopyMapNewVersion("0.0.2", testTableConfig)
+	currentTableConfig := CopyMapNewVersion("0.0.1", testTableConfig)
 
-  tableTestConfigMap := map[string]interface{}{
-    "network":networkTableConfig,
-    "node":nodeTableConfig,
-    "local":localTableConfig,
-    "current":currentTableConfig,
-  }
-  testConfigMap["table"] = tableTestConfigMap
+	tableTestConfigMap := map[string]interface{}{
+		"network": networkTableConfig,
+		"node":    nodeTableConfig,
+		"local":   localTableConfig,
+		"current": currentTableConfig,
+	}
+	testConfigMap["table"] = tableTestConfigMap
 
-  networkDatabaseConfig := CopyMapNewVersion("0.0.1", testDatabaseConfig)
-  nodeDatabaseConfig := CopyMapNewVersion("0.0.5", testDatabaseConfig)
-  localDatabaseConfig := CopyMapNewVersion("0.0.2", testDatabaseConfig)
-  currentDatabaseConfig := CopyMapNewVersion("0.0.1", testDatabaseConfig)
+	networkDatabaseConfig := CopyMapNewVersion("0.0.1", testDatabaseConfig)
+	nodeDatabaseConfig := CopyMapNewVersion("0.0.5", testDatabaseConfig)
+	localDatabaseConfig := CopyMapNewVersion("0.0.2", testDatabaseConfig)
+	currentDatabaseConfig := CopyMapNewVersion("0.0.1", testDatabaseConfig)
 
-  databaseTestConfigMap := map[string]interface{}{
-    "network":networkDatabaseConfig,
-    "node":nodeDatabaseConfig,
-    "local":localDatabaseConfig,
-    "current":currentDatabaseConfig,
-  }
-  testConfigMap["database"] = databaseTestConfigMap
+	databaseTestConfigMap := map[string]interface{}{
+		"network": networkDatabaseConfig,
+		"node":    nodeDatabaseConfig,
+		"local":   localDatabaseConfig,
+		"current": currentDatabaseConfig,
+	}
+	testConfigMap["database"] = databaseTestConfigMap
 
-  var resp map[string]interface{}
-  for configTestName, latestTestConfig := range testConfigMap {
-    if configTestName == "table" {
-        resp, _ = proxima_database.CheckLatest("version", latestTestConfig.(map[string]interface{}))
-    } else {
-        resp, _ = proxima_database.CheckLatest("version", latestTestConfig.(map[string]interface{}))
-    }
+	var resp map[string]interface{}
+	for configTestName, latestTestConfig := range testConfigMap {
+		if configTestName == "table" {
+			resp, _ = proxima_database.CheckLatest("version", latestTestConfig.(map[string]interface{}))
+		} else {
+			resp, _ = proxima_database.CheckLatest("version", latestTestConfig.(map[string]interface{}))
+		}
 
-    latestName := resp["type"].(string)
-    if latestName == "" || latestName != "node" {
-      t.Errorf("Issues with checking the latest. Expected %v, Actual %v", "latest", latestName)
-    }
-  }
+		latestName := resp["type"].(string)
+		if latestName == "" || latestName != "node" {
+			t.Errorf("Issues with checking the latest. Expected %v, Actual %v", "latest", latestName)
+		}
+	}
 }
 
 //Test Scan
@@ -126,84 +129,77 @@ func TestCheckLatest(t *testing.T) {
 
 //Test Stat
 
-
-
-
 func TestDatabaseCreation(t *testing.T) {
-    db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
-    if databaseErr != nil {
-      t.Error("Cannot create database: ", databaseErr)
-    }
+	db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
+	if databaseErr != nil {
+		t.Error("Cannot create database: ", databaseErr)
+	}
 
-    dbConfig := testDatabaseConfig
-    dbConfig["version"] = "0.0.1"
+	dbConfig := testDatabaseConfig
+	dbConfig["version"] = "0.0.1"
 
-    db.SetCurrentDatabaseConfig(dbConfig, true)
-    actualConfig, _ := db.GetCurrentDatabaseConfig()
-    if actualConfig == nil ||  actualConfig["version"].(string) != dbConfig["version"].(string) {
-      t.Errorf("Issues with setting current database config expected: %v but got: %v", dbConfig["version"].(string), actualConfig["version"].(string))
-    }
+	db.SetCurrentDatabaseConfig(dbConfig, true)
+	actualConfig, _ := db.GetCurrentDatabaseConfig()
+	if actualConfig == nil || actualConfig["version"].(string) != dbConfig["version"].(string) {
+		t.Errorf("Issues with setting current database config expected: %v but got: %v", dbConfig["version"].(string), actualConfig["version"].(string))
+	}
 
-    dbConfig["version"] = "0.0.2"
+	dbConfig["version"] = "0.0.2"
 
-    db, dbErr := proxima_database.LoadProximaDatabase(dbConfig)
-    if dbErr != nil {
-      t.Error("Issues with loading database from config: ", dbErr)
-    }
-    actualConfig, _ = db.GetCurrentDatabaseConfig()
-    if actualConfig["version"].(string) != dbConfig["version"].(string) {
-      t.Errorf("Issues with loading database config. expected: %v but got: %v", dbConfig["version"].(string), actualConfig["version"].(string))
-    }
+	db, dbErr := proxima_database.LoadProximaDatabase(dbConfig)
+	if dbErr != nil {
+		t.Error("Issues with loading database from config: ", dbErr)
+	}
+	actualConfig, _ = db.GetCurrentDatabaseConfig()
+	if actualConfig["version"].(string) != dbConfig["version"].(string) {
+		t.Errorf("Issues with loading database config. expected: %v but got: %v", dbConfig["version"].(string), actualConfig["version"].(string))
+	}
 }
 
 func TestDatabaseLoad(t *testing.T) {
 
-    dbConfig, _ := getDBConfig(databaseConfigFile)
+	dbConfig, _ := getDBConfig(databaseConfigFile)
 
-    db, dbErr := proxima_database.LoadProximaDatabase(dbConfig)
-    if dbErr != nil {
-      t.Error("Issues with loading database from config: ", dbErr)
-    }
-    actualConfig, _ := db.GetCurrentDatabaseConfig()
-    if actualConfig["version"].(string) != dbConfig["version"].(string) {
-      t.Errorf("Issues with loading database config. expected: %v but got: %v", dbConfig["version"].(string), actualConfig["version"].(string))
-    }
+	db, dbErr := proxima_database.LoadProximaDatabase(dbConfig)
+	if dbErr != nil {
+		t.Error("Issues with loading database from config: ", dbErr)
+	}
+	actualConfig, _ := db.GetCurrentDatabaseConfig()
+	if actualConfig["version"].(string) != dbConfig["version"].(string) {
+		t.Errorf("Issues with loading database config. expected: %v but got: %v", dbConfig["version"].(string), actualConfig["version"].(string))
+	}
 }
 
-
-
 func TestTableCreation(t *testing.T) {
-    db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
-    if databaseErr != nil {
-      t.Error("Cannot create database: ", databaseErr)
-    }
+	db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
+	if databaseErr != nil {
+		t.Error("Cannot create database: ", databaseErr)
+	}
 
-    table, tableErr := db.NewDefaultTable(tableName)
-    if tableErr != nil {
-      t.Error("Cannot make table: ", tableErr)
-    }
-    tableConfig := testTableConfig
-    tableConfig["version"] = "0.0.1"
+	table, tableErr := db.NewDefaultTable(tableName)
+	if tableErr != nil {
+		t.Error("Cannot make table: ", tableErr)
+	}
+	tableConfig := testTableConfig
+	tableConfig["version"] = "0.0.1"
 
-    table.SetCurrentTableConfig(tableConfig)
-    actualConfig, _ := table.GetCurrentTableConfig()
-    if actualConfig["version"].(string) != tableConfig["version"].(string) {
-      t.Errorf("Issues with setting current table config expected: %v but got: %v", tableConfig["version"].(string), actualConfig["version"].(string))
-    }
+	table.SetCurrentTableConfig(tableConfig)
+	actualConfig, _ := table.GetCurrentTableConfig()
+	if actualConfig["version"].(string) != tableConfig["version"].(string) {
+		t.Errorf("Issues with setting current table config expected: %v but got: %v", tableConfig["version"].(string), actualConfig["version"].(string))
+	}
 
-    tableConfig["version"] = "0.0.2"
+	tableConfig["version"] = "0.0.2"
 
-    table.Load("", tableConfig)
-    actualConfig, _ = table.GetCurrentTableConfig()
-		//fmt.Println(actualConfig)
-    if actualConfig["version"].(string) != tableConfig["version"].(string) {
-      t.Errorf("Issues with loading table config. expected: %v but got: %v", tableConfig["version"].(string), actualConfig["version"].(string))
-    }
+	table.Load("", tableConfig)
+	actualConfig, _ = table.GetCurrentTableConfig()
+	//fmt.Println(actualConfig)
+	if actualConfig["version"].(string) != tableConfig["version"].(string) {
+		t.Errorf("Issues with loading table config. expected: %v but got: %v", tableConfig["version"].(string), actualConfig["version"].(string))
+	}
 }
 
 //test scan, and query
-
-
 
 func TestBasicDatabase(t *testing.T) {
 	db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
@@ -228,9 +224,9 @@ func TestBasicDatabase(t *testing.T) {
 			t.Error("Cannot make table: ", tableErr)
 		}
 		//additional test objectives, get, put, remove, etc
-      //get
-      //put
-      //remove
+		//get
+		//put
+		//remove
 	}
 
 	for i := 0; i < numRemovedTables; i++ {
@@ -250,10 +246,6 @@ func TestBasicDatabase(t *testing.T) {
 		}
 	}
 }
-
-
-
-
 
 //
 //
@@ -340,34 +332,33 @@ func TestTableConfig(t *testing.T) {
 	if databaseErr != nil {
 		t.Error("Cannot create database: ", databaseErr)
 	}
-	var updated bool;
+	var updated bool
 	table, tableErr := db.NewDefaultTable(tableName)
 	if tableErr != nil {
 		t.Error("Cannot make table: ", tableErr)
 	}
 	table.Open()
-  configUpdatev2 := CopyMapNewVersion("0.0.2", testTableConfig)
+	configUpdatev2 := CopyMapNewVersion("0.0.2", testTableConfig)
 	configUpdatev1 := CopyMapNewVersion("0.0.1", testTableConfig)
 	blockNum1 := 1
-//here
+	//here
 
-  table.SetCurrentTableConfig(configUpdatev2)
-  expectedVersion := "0.0.2"
-  config, err := table.GetCurrentTableConfig()
+	table.SetCurrentTableConfig(configUpdatev2)
+	expectedVersion := "0.0.2"
+	config, err := table.GetCurrentTableConfig()
 	if err != nil {
-		 t.Errorf("Error with getting current table config: %v", err)
+		t.Errorf("Error with getting current table config: %v", err)
 	}
-  actualVersion := config["version"].(string)
-  if actualVersion != expectedVersion {
-    t.Errorf("Did not update version correctly, got version: %v, expectedVersion: %v", actualVersion, expectedVersion)
-  }
+	actualVersion := config["version"].(string)
+	if actualVersion != expectedVersion {
+		t.Errorf("Did not update version correctly, got version: %v, expectedVersion: %v", actualVersion, expectedVersion)
+	}
 
 	table.Update()
 
 	//Check local
 	//localConfig, _ := table.GetLocalTableConfig()
 	//currentConfig, _ := table.GetCurrentTableConfig()
-
 
 	var entries map[string]string = GenerateKeyValuePairs(keySize, valueSize, numEntries)
 	for key, value := range entries {
@@ -377,27 +368,26 @@ func TestTableConfig(t *testing.T) {
 		}
 	}
 
-  configUpdatev2["blockNum"] = blockNum1
-  table.SetCurrentTableConfig(configUpdatev2)
-  expectedBlockNum := blockNum1
+	configUpdatev2["blockNum"] = blockNum1
+	table.SetCurrentTableConfig(configUpdatev2)
+	expectedBlockNum := blockNum1
 
 	updated, err = table.Update()
-	if err != nil || updated  == false {
-		 t.Errorf("Error with updating table config: %v", err)
+	if err != nil || updated == false {
+		t.Errorf("Error with updating table config: %v", err)
 	}
 
-  config, err = table.GetCurrentTableConfig()
+	config, err = table.GetCurrentTableConfig()
 
 	if err != nil {
-		 t.Errorf("Error with getting current table config: %v", err)
+		t.Errorf("Error with getting current table config: %v", err)
 	}
 
-
-  actualBlockNum := config["blockNum"].(int)
+	actualBlockNum := config["blockNum"].(int)
 	fmt.Println(config)
-  if actualBlockNum != expectedBlockNum {
-    t.Errorf("Did not update blockNum correctly, got blockNum: %v, expected blockNum: %v", actualBlockNum, expectedBlockNum)
-  }
+	if actualBlockNum != expectedBlockNum {
+		t.Errorf("Did not update blockNum correctly, got blockNum: %v, expected blockNum: %v", actualBlockNum, expectedBlockNum)
+	}
 
 	for key, value := range entries {
 		resp, getErr := table.Get(key, false)
@@ -423,8 +413,8 @@ func TestTableConfig(t *testing.T) {
 	}
 
 	updated, err = table.Update()
-	if err != nil || updated  == false {
-		 t.Errorf("Error with updating table config: %v", err)
+	if err != nil || updated == false {
+		t.Errorf("Error with updating table config: %v", err)
 	}
 
 	newConfig, _ := table.GetCurrentTableConfig()
@@ -433,12 +423,11 @@ func TestTableConfig(t *testing.T) {
 		t.Errorf("Did not update the version correctly, got outdated version: %v, expectedVersion: %v", actualVersion, expectedVersion)
 	}
 
+	updated, err = db.Update()
+	if err != nil || updated == false {
 
-		updated, err = db.Update()
-		if err != nil  || updated  == false {
-
-			 t.Errorf("Error with updating db config: %+v", err)
-		}
+		t.Errorf("Error with updating db config: %+v", err)
+	}
 }
 
 func TestGet(t *testing.T) {
@@ -461,8 +450,6 @@ func TestGet(t *testing.T) {
 	}
 }
 
-
-
 func TestPut(t *testing.T) {
 	db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
 	if databaseErr != nil {
@@ -473,7 +460,7 @@ func TestPut(t *testing.T) {
 	if tableErr != nil {
 		t.Error("Cannot make table: ", tableErr)
 	}
-	err:= table.Open()
+	err := table.Open()
 	if err != nil {
 		t.Error("Cannot open table: ", err)
 	}
@@ -494,7 +481,7 @@ func TestPut(t *testing.T) {
 	fmt.Println(num)
 
 	start = time.Now()
-//range queries
+	//range queries
 	for key, value := range entries {
 		resp, getErr := table.Get(key, false)
 		if getErr != nil {
@@ -509,7 +496,6 @@ func TestPut(t *testing.T) {
 	fmt.Println(elapsed)
 	fmt.Println(num)
 }
-
 
 func TestScan(t *testing.T) {
 	db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
@@ -530,21 +516,21 @@ func TestScan(t *testing.T) {
 		}
 	}
 
-var num int = 10
+	var num int = 10
 
-start := time.Now()
-for i := 0; i < num; i++ {
-	resp, scanErr :=  table.Scan(int(-1), int(10+i), int(100), false, make(map[string]interface{}))
-	//fmt.Println(resp)
-	if scanErr != nil {
-		fmt.Println(resp)
-		t.Error("Issue with scanning table: ", scanErr)
+	start := time.Now()
+	for i := 0; i < num; i++ {
+		resp, scanErr := table.Scan(int(0), int(10+i), int(100), false, make(map[string]interface{}))
+		//fmt.Println(resp)
+		if scanErr != nil {
+			fmt.Println(resp)
+			t.Error("Issue with scanning table: ", scanErr)
+		}
 	}
-}
-endT := time.Now()
-elapsed := endT.Sub(start)
-fmt.Println(elapsed)
-fmt.Println(num)
+	endT := time.Now()
+	elapsed := endT.Sub(start)
+	fmt.Println(elapsed)
+	fmt.Println(num)
 }
 
 func TestQuery(t *testing.T) {
@@ -568,19 +554,17 @@ func TestQuery(t *testing.T) {
 			t.Error("Cannot put key and value: ", putErr)
 		}
 	}
-var queries []string = GenerateRandomSearchQueryText()
-//generate random queries
-for i := 0; i < 10; i++ {
-	resp, queryErr :=  table.Query(queries[i], false)
-	fmt.Println(resp)
-	if queryErr != nil {
-		fmt.Println(resp)
-		t.Error("Issue with scanning table: ", queryErr)
-	}
+	// var queries []string = GenerateRandomSearchQueryText()
+	// //generate random queries
+	// for i := 0; i < 10; i++ {
+	// 	resp, queryErr := table.Query(queries[i], false)
+	// 	fmt.Println(resp)
+	// 	if queryErr != nil {
+	// 		fmt.Println(resp)
+	// 		t.Error("Issue with scanning table: ", queryErr)
+	// 	}
+	// }
 }
-}
-
-
 
 // func TestRemove(t *testing.T) {
 //   db, databaseErr := NewDefaultDatabase(databaseName, databaseID)
@@ -601,8 +585,6 @@ for i := 0; i < 10; i++ {
 //     }
 //   }
 // }
-
-
 
 // func (t *testing.T) TestBatch(db *ProximaDatabase, tableName string, entries []interface{}) {
 //   // sizeValues := 300
