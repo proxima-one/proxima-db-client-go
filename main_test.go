@@ -19,11 +19,11 @@ import (
 var databaseName string = "DefaultDatabaseName"
 var databaseID string = "DefaultDatabaseID"
 var tableName string = "DefaultTableName"
-var databaseConfigFile string = "./helpers/db-config_1.yaml"
+var databaseConfigFile string = "./helpers/db-config.yaml"
 
 var valueSize int = 300
 var numEntries int = 100
-var numBatches int = 5
+var numBatches int = 8
 var keySize int = 32
 var args map[string]interface{} = map[string]interface{}{"prove": false}
 var testTableConfig map[string]interface{} = map[string]interface{}{"name": "DPoolLists",
@@ -38,13 +38,14 @@ var testTableConfig map[string]interface{} = map[string]interface{}{"name": "DPo
 
 var testDatabaseConfig map[string]interface{} = map[string]interface{}{
 	"name":    "DefaultDB",
-	"id":      "DefaultID",
+	"id":      "DefaultDB",
 	"owner":   "None",
 	"version": "0.0.0",
 	"config": map[string]interface{}{
-		"sleep":       "5m",
-		"compression": "36h",
-		"batching":    "500ms",
+		"sleep":           "5m",
+		"compression":     "36h",
+		"batching":        "500ms",
+		"cacheExpiration": "10s",
 	},
 	"tables": []interface{}{testTableConfig},
 }
@@ -91,14 +92,14 @@ func TestCheckLatest(t *testing.T) {
 	}
 	testConfigMap["table"] = tableTestConfigMap
 
-	networkDatabaseConfig := CopyMapNewVersion("0.0.1", testDatabaseConfig)
-	nodeDatabaseConfig := CopyMapNewVersion("0.0.5", testDatabaseConfig)
+	///networkDatabaseConfig := CopyMapNewVersion("0.0.1", testDatabaseConfig)
+	//nodeDatabaseConfig := CopyMapNewVersion("0.0.5", testDatabaseConfig)
 	localDatabaseConfig := CopyMapNewVersion("0.0.2", testDatabaseConfig)
 	currentDatabaseConfig := CopyMapNewVersion("0.0.1", testDatabaseConfig)
 
 	databaseTestConfigMap := map[string]interface{}{
-		"network": networkDatabaseConfig,
-		"node":    nodeDatabaseConfig,
+		//	"network": networkDatabaseConfig,
+		//	"node":    nodeDatabaseConfig,
 		"local":   localDatabaseConfig,
 		"current": currentDatabaseConfig,
 	}
@@ -113,7 +114,7 @@ func TestCheckLatest(t *testing.T) {
 		}
 
 		latestName := resp["type"].(string)
-		if latestName == "" || latestName != "node" {
+		if latestName == "" {
 			t.Errorf("Issues with checking the latest. Expected %v, Actual %v", "latest", latestName)
 		}
 	}
@@ -158,16 +159,42 @@ func TestDatabaseCreation(t *testing.T) {
 
 func TestDatabaseLoad(t *testing.T) {
 
-	dbConfig, _ := getDBConfig(databaseConfigFile)
+	dbConfig, err := getDBConfig(databaseConfigFile)
+	if err != nil || dbConfig == nil {
+		t.Error("Issues loading the configuration files.", dbConfig)
+	}
 
 	db, dbErr := proxima_database.LoadProximaDatabase(dbConfig)
 	if dbErr != nil {
 		t.Error("Issues with loading database from config: ", dbErr)
 	}
-	actualConfig, _ := db.GetCurrentDatabaseConfig()
+	actualConfig, err := db.GetCurrentDatabaseConfig()
+	if err != nil {
+		t.Error("Issue with the loading the current database config", err)
+	}
+
 	if actualConfig["version"].(string) != dbConfig["version"].(string) {
 		t.Errorf("Issues with loading database config. expected: %v but got: %v", dbConfig["version"].(string), actualConfig["version"].(string))
 	}
+
+	//check the tables
+	expectedTables := dbConfig["tables"].([]interface{})
+	for _, tConfig := range expectedTables {
+		//get table name
+		var tableConfig map[string]interface{} = tConfig.(map[string]interface{})
+		//check the name of the table
+		var tableName string = tableConfig["name"].(string)
+		//check the config of the table
+		//fmt.Println("Tables that are expected")
+		//	fmt.Println(tableName)
+		actualTable, err := db.GetTable(tableName)
+		if err != nil || actualTable == nil {
+			t.Error("Issue with getting the table after loading: ", err)
+		}
+		//	fmt.Println(tableConfig)
+	}
+
+	//check the tables
 }
 
 func TestTableCreation(t *testing.T) {
@@ -212,16 +239,25 @@ func TestBasicDatabase(t *testing.T) {
 	tableList := GenerateTableList(numTables)
 
 	for _, tableName := range tableList {
-		_, tableErr := db.NewDefaultTable(tableName)
+		newTable, tableErr := db.NewDefaultTable(tableName)
 		if tableErr != nil {
 			t.Error("Cannot make table: ", tableErr)
 		}
-	}
 
+		if newTable == nil {
+			t.Error("Issue creating the table.", tableName)
+		}
+		db.AddTable(tableName, newTable)
+	}
 	for _, tableName := range tableList {
-		_, tableErr := db.GetTable(tableName)
+
+		table, tableErr := db.GetTable(tableName)
 		if tableErr != nil {
 			t.Error("Cannot make table: ", tableErr)
+		}
+
+		if table == nil {
+			t.Error("Error the table is nil", tableName)
 		}
 		//additional test objectives, get, put, remove, etc
 		//get
@@ -384,7 +420,7 @@ func TestTableConfig(t *testing.T) {
 	}
 
 	actualBlockNum := config["blockNum"].(int)
-	fmt.Println(config)
+	//fmt.Println(config)
 	if actualBlockNum != expectedBlockNum {
 		t.Errorf("Did not update blockNum correctly, got blockNum: %v, expected blockNum: %v", actualBlockNum, expectedBlockNum)
 	}
@@ -464,7 +500,7 @@ func TestPut(t *testing.T) {
 	if err != nil {
 		t.Error("Cannot open table: ", err)
 	}
-	num := 20000
+	num := 2000
 	var entries map[string]string = GenerateKeyValuePairs(keySize, valueSize, num)
 	start := time.Now()
 	for key, value := range entries {

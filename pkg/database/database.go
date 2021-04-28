@@ -29,7 +29,7 @@ func NewProximaDatabase(name, id, version string, client client.ProximaServiceCl
 }
 
 func CheckLatest(checkType string, config map[string]interface{}) (map[string]interface{}, error) {
-	currentType := "."
+	currentType := "current"
 	currentVersion := "0.0.0"
 	//currentName := "."
 	returnValue := make(map[string]interface{})
@@ -49,6 +49,7 @@ func CheckLatest(checkType string, config map[string]interface{}) (map[string]in
 			//currentName = newConfig["name"].(string)
 		}
 	}
+	//currentType = "current"
 	returnValue["type"] = currentType
 	returnValue["config"] = config
 	return returnValue, nil
@@ -108,6 +109,7 @@ func GetClient(clients []interface{}) (client.ProximaServiceClient, error) {
 func LoadProximaDatabase(config map[string]interface{}) (*ProximaDatabase, error) {
 	clients, _ := GetClients(config)
 	client, _ := GetClient(clients)
+
 	//fmt.Println(config)
 	name := config["name"].(string)
 	id := config["id"].(string)
@@ -123,7 +125,10 @@ func LoadProximaDatabase(config map[string]interface{}) (*ProximaDatabase, error
 
 	version := config["version"].(string)
 
-	db, _ := NewProximaDatabase(name, id, version, client, clients, sleep, compression, batching)
+	db, err := NewProximaDatabase(name, id, version, client, clients, sleep, compression, batching)
+	if err != nil {
+		return nil, err
+	}
 	if config["tables"] != nil {
 		var tables []interface{} = config["tables"].([]interface{})
 		for _, tableConfig := range tables {
@@ -131,7 +136,7 @@ func LoadProximaDatabase(config map[string]interface{}) (*ProximaDatabase, error
 			db.LoadTable("local", loadConfig)
 		}
 	}
-	db.Update()
+	//db.Update()
 	return db, nil
 }
 
@@ -165,27 +170,30 @@ func (db *ProximaDatabase) GetNetworkDatabaseConfig(method string) (map[string]i
 
 func (db *ProximaDatabase) GetAllDatabaseConfig(methodType string) (map[string]interface{}, error) {
 	config := make(map[string]interface{})
-	var err error
-	config["local"], err = db.GetLocalDatabaseConfig()
-	if err != nil {
-		return nil, err
-	}
+	configNames := []string{"local", "current", "node"}
+	//"network",
 
-	config["current"], err = db.GetCurrentDatabaseConfig()
-	if err != nil {
-		return nil, err
-	}
-	config["node"], err = db.GetNetworkDatabaseConfig("node")
-	if err != nil {
-		return nil, err
-	}
-	if methodType == "global" {
-		config["network"], err = db.GetNetworkDatabaseConfig("global")
-		if err != nil {
-			return nil, err
+	for _, configName := range configNames {
+		var err error
+		var dbConfig map[string]interface{}
+
+		if configName == "current" {
+			dbConfig, err = db.GetCurrentDatabaseConfig()
 		}
+
+		if configName == "node" {
+			dbConfig, err = db.GetNetworkDatabaseConfig(methodType)
+		}
+
+		if configName == "local" {
+			dbConfig, err = db.GetLocalDatabaseConfig()
+		}
+
+		if err == nil && dbConfig != nil {
+			config[configName] = dbConfig
+		}
+
 	}
-	//
 
 	return config, nil
 }
@@ -218,7 +226,6 @@ func (db *ProximaDatabase) Update() (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	fmt.Println(newConfig)
 	syncType := newConfig["type"]
 	var config map[string]interface{} = newConfig["config"].(map[string]interface{})
 	if syncType != nil && config[syncType.(string)] != nil {
@@ -248,7 +255,7 @@ func (db *ProximaDatabase) Update() (bool, error) {
 }
 
 func (db *ProximaDatabase) SetCurrentDatabaseConfig(newConfig map[string]interface{}, includeTables bool) (bool, error) {
-	fmt.Println(newConfig)
+	//fmt.Println(newConfig)
 	db.name = newConfig["name"].(string)
 	db.id = newConfig["id"].(string)
 	db.version = newConfig["version"].(string)
@@ -336,13 +343,15 @@ func (db *ProximaDatabase) LoadTable(loadType string, tableConfig map[string]int
 	tableName := tableConfig["name"].(string)
 	table, err := db.GetTable(tableName)
 	if err != nil {
+		fmt.Println(err)
 		return nil, err
 	}
 	if table == nil {
-		table, err = db.NewDefaultTable(tableName)
+
+		table, _ = db.NewDefaultTable(tableName)
 	}
 	table.Load(loadType, tableConfig)
-	db.tables[tableName] = table
+	db.AddTable(tableName, table)
 	return table, nil
 }
 
@@ -354,7 +363,12 @@ func (db *ProximaDatabase) GetTable(name string) (*ProximaTable, error) {
 }
 
 func (db *ProximaDatabase) AddTable(name string, table *ProximaTable) {
-	db.tables[name] = table
+	//fmt.Println("table", name)
+	if table != nil {
+		db.tables[name] = table
+	} else {
+		db.tables[name], _ = db.NewDefaultTable(name)
+	}
 }
 
 func (db *ProximaDatabase) RemoveTable(name string) (bool, error) {
