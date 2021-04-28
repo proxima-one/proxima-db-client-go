@@ -16,7 +16,7 @@ import (
 )
 
 func NewProximaTable(db *ProximaDatabase, name, id string, cacheExpiration time.Duration) *ProximaTable {
-	table := &ProximaTable{db: db, name: name, id: id, cache: NewTableCache(cacheExpiration), isOpen: make(chan bool), isIdle: make(chan bool), sleep: db.sleep, compression: db.compression, batching: db.batching, header: "Root", blockNum: 0}
+	table := &ProximaTable{db: db, name: name, id: id, cache: NewTableCache(cacheExpiration), isOpen: false, isIdle: false, sleep: db.sleep, compression: db.compression, batching: db.batching, header: "Root", blockNum: 0}
 	return table
 }
 
@@ -26,8 +26,8 @@ type ProximaTable struct {
 	version     string
 	blockNum    int
 	header      string
-	isOpen      chan bool
-	isIdle      chan bool
+	isOpen      bool
+	isIdle      bool
 	sleep       time.Duration
 	compression time.Duration
 	batching    time.Duration
@@ -189,7 +189,7 @@ func (table *ProximaTable) Stat() (bool, error) {
 
 func (table *ProximaTable) Scan(first, last, limit int, prove bool, args map[string]interface{}) ([]*ProximaDBResult, error) {
 	finish := first
-	direction := (first < last)
+	direction := (first > last)
 	if direction {
 		finish = last
 	}
@@ -230,7 +230,7 @@ func toKeySlices(start int, finish int, direction bool) []KeySlice {
 
 func (table *ProximaTable) Range(start, finish int, direction, prove bool, args map[string]interface{}) ([]*ProximaDBResult, error) {
 	//keySlice construction
-	offset := 100
+	//offset := 100
 	rangeResponses := make([]*ProximaDBResult, 0)
 	keySlices := toKeySlices(start, finish, direction)
 	for _, keySlice := range keySlices {
@@ -252,9 +252,10 @@ func (table *ProximaTable) Range(start, finish int, direction, prove bool, args 
 			rangeResponses = append(rangeResponses, results...)
 		}
 	}
-	newStart := offset - (start % offset)
-	newFinish := offset - (finish % offset)
-	return rangeResponses[newStart : len(rangeResponses)-newFinish], nil
+	// newStart := offset - (start % offset)
+	// newFinish := offset - (finish % offset)
+
+	return rangeResponses, nil
 }
 
 func (table *ProximaTable) Delete() (bool, error) {
@@ -268,7 +269,7 @@ func (table *ProximaTable) Delete() (bool, error) {
 }
 
 func (table *ProximaTable) Open() error {
-	if <-table.isOpen {
+	if table.isOpen {
 		return nil
 	}
 	//err := table.db.OpenTable(table.name, table);
@@ -276,10 +277,10 @@ func (table *ProximaTable) Open() error {
 	//   return err
 	// } else {
 	//go Compression(table, table.compression)
-	table.isIdle <- false
-	table.isOpen <- true
+	table.isIdle = false
+	table.isOpen = true
 	go Batching(table, table.batching)
-	go SleepSchedule(table, table.sleep)
+	//go SleepSchedule(table, table.sleep)
 	// }
 	return nil
 }
@@ -289,13 +290,15 @@ func Compression(table *ProximaTable, interval time.Duration) {
 	for ; true; <-ticker.C {
 		select {
 		case <-ticker.C:
-			table.Compact()
-			break
-		case isOpened := <-table.isOpen:
-			if !isOpened {
+			if !table.isOpen {
 				return
+			} else {
+				table.Compact()
 			}
 			break
+			// case isOpened := <-table.isOpen:
+
+			// 	break
 			//is not open, must finish commitment ..., getRoot, ..
 		}
 	}
@@ -307,13 +310,17 @@ func Batching(table *ProximaTable, interval time.Duration) {
 	for ; true; <-ticker.C {
 		select {
 		case <-ticker.C:
-			table.Commit()
-			table.Checkout()
-			break
-		case isOpened := <-table.isOpen:
-			if isOpened == false {
+			if !table.isOpen {
 				return
+			} else {
+				table.Commit()
+				table.Checkout()
 			}
+			break
+			// case isOpened := <-table.isOpen:
+			// 	if isOpened == false {
+			// 		return
+			// 	}
 			//is not open, must finish commitment ..., getRoot, ..
 		}
 	}
@@ -324,20 +331,22 @@ func SleepSchedule(table *ProximaTable, interval time.Duration) {
 	for ; true; <-ticker.C {
 		select {
 		case <-ticker.C:
-			table.isIdle <- true
+			table.isIdle = true
 			break
-		case <-table.isIdle:
-			ticker.Stop()
-			table.Close()
-			return
+		default:
+			if table.isIdle {
+				ticker.Stop()
+				table.Close()
+				return
+			}
 			//is not open, must finish commitment ..., getRoot, ..
 		}
 	}
 }
 
 func (table *ProximaTable) Close() error {
-	table.isIdle <- false //turns off of the sleep
-	table.isOpen <- false //turns off compression and batching
+	table.isIdle = false //turns off of the sleep
+	table.isOpen = false //turns off compression and batching
 	_, err := table.db.client.Close(context.TODO(), &client.CloseRequest{Name: table.id})
 	// /table.cache.cache.flush()
 	if err != nil {
@@ -349,7 +358,7 @@ func (table *ProximaTable) Close() error {
 
 //filter query
 func (table *ProximaTable) Query(queryString string, prove bool) ([]*ProximaDBResult, error) {
-	table.isIdle <- false
+	table.isIdle = false
 	//cache
 
 	//extras
@@ -359,7 +368,7 @@ func (table *ProximaTable) Query(queryString string, prove bool) ([]*ProximaDBRe
 func (table *ProximaTable) Get(key string, prove bool) (*ProximaDBResult, error) {
 	var result *ProximaDBResult
 	var err error
-	table.isIdle <- false
+	table.isIdle = false
 	if cached, found := table.cache.Get(key); found && cached != nil {
 		result = cached //.(*ProximaDBResult)
 	} else {
@@ -406,7 +415,7 @@ func (table *ProximaTable) Search(filterSet, orderBy, orderDirection interface{}
 
 func (table *ProximaTable) Put(key interface{}, value interface{}, prove bool, args map[string]interface{}) (*ProximaDBResult, error) {
 	var result *ProximaDBResult
-	table.isIdle <- false
+	table.isIdle = false
 
 	if cached, found := table.cache.Get(key); found && cached != nil {
 		table.cache.Remove(key)
@@ -440,7 +449,7 @@ func (table *ProximaTable) Put(key interface{}, value interface{}, prove bool, a
 // }
 
 func (table *ProximaTable) Remove(key string, prove bool) (*ProximaDBResult, error) {
-	table.isIdle <- false
+	table.isIdle = false
 	var result *ProximaDBResult
 	var err error
 	//var result *ProximaDBResult;

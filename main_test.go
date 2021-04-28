@@ -22,8 +22,8 @@ var tableName string = "DefaultTableName"
 var databaseConfigFile string = "./helpers/db-config.yaml"
 
 var valueSize int = 300
-var numEntries int = 100
-var numBatches int = 8
+var numEntries int = 200
+var numBatches int = 3
 var keySize int = 32
 var args map[string]interface{} = map[string]interface{}{"prove": false}
 var testTableConfig map[string]interface{} = map[string]interface{}{"name": "DPoolLists",
@@ -500,7 +500,7 @@ func TestPut(t *testing.T) {
 	if err != nil {
 		t.Error("Cannot open table: ", err)
 	}
-	num := 2000
+	num := 200
 	var entries map[string]string = GenerateKeyValuePairs(keySize, valueSize, num)
 	start := time.Now()
 	for key, value := range entries {
